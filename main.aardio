@@ -1,0 +1,112 @@
+import fsys.dlg
+import process
+import win.ui
+import win.ui.tooltip
+/*DSG{{*/
+mainForm = win.form(cls="RIMG_GUI_FORM";text="rimage_gui";right=528;bottom=338;border="thin";max=false)
+mainForm.add(
+auto_delete={cls="checkbox";text="自动删除 AutoDel";left=143;top=7;right=301;bottom=32;bgcolor=65535;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=14};
+edit_o_d={cls="edit";left=154;top=306;right=518;bottom=331;autovscroll=false;edge=1;font=LOGFONT(h=-14;name='微软雅黑');readonly=1;z=9};
+edit_o_q={cls="edit";text="90";left=481;top=7;right=518;bottom=32;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');multiline=1;num=1;z=6};
+edit_q={cls="edit";text="50";left=450;top=150;right=487;bottom=175;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');multiline=1;num=1;z=11};
+edit_t={cls="edit";text="4";left=450;top=218;right=487;bottom=243;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');multiline=1;num=1;z=13};
+file_list={cls="listbox";left=8;top=35;right=409;bottom=305;edge=1;font=LOGFONT(h=-14;name='微软雅黑');hscroll=1;items={"双击左键添加，选中后使用右键删除，所有选项均有相应提示";"Double click left button of mouse to add pic(s).";"Click right Button after select to del it.";"Every opinion has tip on it, click or hover over it to see."};vscroll=1;z=2};
+out_format={cls="combobox";left=427;top=80;right=507;bottom=106;edge=1;font=LOGFONT(h=-16;name='微软雅黑');items={"jpg";"png";"oxipng";"webp"};mode="dropdown";z=8};
+start_cov={cls="button";text="开始 Start";left=419;top=251;right=518;bottom=300;border=1;default=1;font=LOGFONT(h=-17;name='微软雅黑');z=4};
+static_file_list={cls="static";text="文件列表 File list";left=3;top=7;right=137;bottom=32;align="center";center=1;font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=3};
+static_out_dir={cls="static";text="输出目录 Out-Dir：";left=8;top=306;right=156;bottom=331;align="center";center=1;font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=1};
+static_out_format={cls="static";text="输出格式
+Out-Format";left=415;top=38;right=514;bottom=82;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=7};
+static_out_quailty={cls="static";text="输出质量 Out-Quailty：";left=310;top=7;right=492;bottom=32;align="center";center=1;font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=5};
+static_quantization={cls="static";text="量化程度
+Quantization";left=419;top=108;right=518;bottom=152;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=10};
+static_thread={cls="static";text="线程数
+Threads";left=419;top=176;right=518;bottom=220;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=12}
+)
+/*}}*/
+
+if(not io.exist(io._exedir + "rimage.exe")){
+	thread.invoke( 
+		function(){
+			string.save(io._exedir + "rimage.exe",$"\res\rimage.exe")
+		})
+	win.msgbox('正在将Rimage释放到运行目录。\n“Rimage”软件为Apache2.0与MIT协议并存软件，\n本软件（仅GUI）为MIT许可证。\n\nRimage is being released to the current directory.\nPlease note that "Rimage" software is under\neither Apache2.0 and MIT license,\nthis software (GUI only) is under MIT license.',"Tip")
+}
+
+var tooltipCtrl = win.ui.tooltip(mainForm)
+var tips_table = {
+	"file_list" = '将要进行转换的文件列表，您可以通过双击\n左键以添加一个或多个，也可以在选中后通过单击右键将其删除。\n\nYou can add one or more imgs to the list by double-clicking\nthe left button of mouse, or delete them by right-clicking\nafter selection.';
+	"auto_delete" = '是否在转换完成后自动删除原始图片\n\nWhether to delete the Original Pic after cov.';
+	"edit_o_q" = '此数值决定了您图片的输出质量，范围为1~100。\n\nThis value determines the output quality of\nyour image, ranging from 1 to 100.';
+	"out_format" = '您可以在此处选择您希望输出的文件格式。\n\nYou can choose the file format you want here.';
+	"edit_q" = '量化是另一种意义上的图片质量，范围为1~100。\n如果您不确定或者不清楚改变它的结果，请将其\n保持原样以获得更小体积或者设置为100以获得\n更好的质量。\n\nQuantification is another form of image quality,\nranging from 1 to 100.\nIf you have no knowledge or unclear about it,\nplease just set it to 100 for better quality or\nkeep it for smaller size.';
+	"edit_t" = 'rimage程序运行时的线程数量，根据不同电脑的\n不同性能适当增加线程数量可以加速图片的处理。\n不建议超过12。\n\nYou can increase the num of threads\naccording to the different performance of\nyour computer to accelerate processing.\nNo more than 12 please.';
+	"edit_o_d" = '程序的输出目录，默认为程序所在的目录。\n双击右侧以进行更改。\n\nThe dir for output, default is the dir\nthat process start.\nDouble click right side to change it.';
+	"start_cov" = '开始运行\n\nStart rimage'
+}
+tooltipCtrl.add(tips_table)
+
+var count = null
+mainForm.edit_o_d.text = """" + string.left(io._exedir,-2,true) + """"
+
+mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
+	select(message) {
+		case 0x203/*_WM_LBUTTONDBLCLK*/{
+			if(count == null){
+				mainForm.file_list.clear()
+				count = 0
+			}
+			var temp,temp2 = fsys.dlg.openEx("图片 Picture|*.png;*.jpg;*.jpeg;*.webp","选择图片 Select IMGs",,mainForm.hwnd)
+			if(temp != null){
+				for(i,j in temp1){mainForm.file_list.add(j,1)}
+			}else{
+				win.msgbox('请选择正确的图片\nPlease select Pics we support.',"Warning",,mainForm.hwnd,2000)
+			}
+		}
+		case 0x204/*_WM_RBUTTONDOWN*/{
+			mainForm.file_list.delete()
+		}
+	}
+}
+
+mainForm.edit_o_d.wndproc = function(hwnd,message,wParam,lParam){
+	select(message) {
+		case 0x203/*_WM_LBUTTONDBLCLK*/{
+			temp = fsys.dlg.openDir(,mainForm.hwnd,"请选择目录 Please select the Dir for output")
+			if(temp != null){
+				mainForm.edit_o_d.text = """" + temp  + """"
+			}else{
+				win.msgbox('请选择正确的目录\nPlease select right dir to save.',"Warning",,mainForm.hwnd,2000)
+			}
+		}
+	}
+}
+
+mainForm.start_cov.oncommand = function(id,event){
+	if(count != 0){
+		win.msgbox('请选择正确的图片\nPlease select Pics we support before execute.',"Warning",,mainForm.hwnd,2000)
+	}else{	
+		for(count=1;mainForm.file_list.count;1){
+			var argvs = "-q " + mainForm.edit_o_q.text
+			argvs = argvs + " -f " + mainForm.out_format.selText
+			argvs = argvs + " -t " + mainForm.edit_t .text
+			argvs = argvs + " -s _updated"
+			argvs = argvs + " --quantization " + mainForm.edit_q.text
+			argvs = argvs + " -o " + mainForm.edit_o_d.text
+			argvs = argvs + " """ + mainForm.file_list.getItemText(count) + """"
+			process.executeWait("""" + io._exedir + "rimage.exe""",argvs)
+			if(mainForm.auto_delete.checked){fsys.delete(mainForm.file_list.getItemText(count))}
+		}
+	}
+	
+}
+
+mainForm.static_file_list.oncommand = function(id,event){win.msgbox(tips_table["file_list"],"file list")}
+mainForm.static_out_quailty.oncommand = function(id,event){win.msgbox(tips_table["edit_o_q"],"out quality")}
+mainForm.static_out_format.oncommand = function(id,event){win.msgbox(tips_table["out_format"],"out format")}
+mainForm.static_quantization.oncommand = function(id,event){win.msgbox(tips_table["edit_q"],"quantization")}
+mainForm.static_thread.oncommand = function(id,event){win.msgbox(tips_table["edit_t"],"thread")}
+mainForm.static_out_dir.oncommand = function(id,event){win.msgbox(tips_table["edit_o_d"],"out dir")}
+
+mainForm.show();
+return win.loopMessage();

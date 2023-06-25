@@ -56,8 +56,8 @@ mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
 				mainForm.file_list.clear()
 				count = 0
 			}
-			var temp,temp2 = fsys.dlg.openEx("图片 Picture|*.png;*.jpg;*.jpeg;*.webp","选择图片 Select IMGs",,mainForm.hwnd)
-			if(temp != null){
+			var temp1,temp2 = fsys.dlg.openEx("图片 Picture|*.png;*.jpg;*.jpeg;*.webp","选择图片 Select IMGs",,mainForm.hwnd)
+			if(temp1 != null){
 				for(i,j in temp1){mainForm.file_list.add(j,1)}
 			}else{
 				win.msgbox('请选择正确的图片\nPlease select Pics we support.',"Warning",,mainForm.hwnd,2000)

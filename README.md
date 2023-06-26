@@ -26,6 +26,7 @@ As you can see, the software encompasses most of the features of the original so
 <img width="442" alt="06月26日17时47分23秒" src=https://github.com/Mikachu2333/rimage_gui/assets/63829496/46094330-fe49-410b-a5e3-6320313fb276>
 
 <img width="714" alt="06月26日17时59分45秒" src="https://github.com/Mikachu2333/rimage_gui/assets/63829496/c7e11470-088e-4057-9d2d-7ae7730df40e">
+
 你可以通过鼠标悬停或者点击你想要了解的内容来查看解释。
 
 You can view the explanation by hovering or clicking on the content you want to understand.  

@@ -32,4 +32,4 @@ All the available options are explained in detail.
 
 # 效果图（Pic After Use）
 <img width="666" alt="06月24日21时18分21秒" src="https://github.com/Mikachu2333/rimage_gui/assets/63829496/065cc7ab-db26-439b-99b1-ef368146c963">
-<img width="960" alt="12" src="https://github.com/Mikachu2333/rimage_gui/assets/63829496/9a41710f-99db-4372-8c2c-6b68f446a041">
+<img width="560" alt="12" src="https://github.com/Mikachu2333/rimage_gui/assets/63829496/9a41710f-99db-4372-8c2c-6b68f446a041">

@@ -9,6 +9,7 @@ Thanks [rimage](https://github.com/SalOne22/rimage) and [appinn.com](https://www
 <img width="442" alt="06月26日17时47分23秒" src="https://github.com/Mikachu2333/rimage_gui/assets/63829496/d877bf9a-a71e-4ffa-adda-2a668cb2249a">
 
 如你所见，软件囊括了大部分原软件的功能，一般情况下，你只需要选择
+
 As you can see, the software encompasses most of the features of the original software, and in general, you only need to select
 
 **是否自动删除（AutoDel）**

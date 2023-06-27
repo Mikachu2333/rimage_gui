@@ -29,7 +29,7 @@ Threads";left=418;top=150;right=531;bottom=196;align="center";font=LOGFONT(h=-16
 /*}}*/
 
 if(not io.exist(io._exedir + "rimage.exe")){
-	thread.invoke( 
+	thread.invoke(
 		function(){
 			string.save(io._exedir + "rimage.exe",$"\res\rimage.exe")
 		})
@@ -159,11 +159,9 @@ mainForm.start_cov.oncommand = function(id,event){
 	if(count != 0){
 		win.msgbox('请选择正确的图片\nPlease select Pics we support before execute.',"Warning",,mainForm.hwnd,2000)
 	}else{
-		io.open()
 		mainForm.process_show.text = "开始运行 Rimage start"
 		for(count=1;mainForm.file_list.count;1){
-			var temp_name = string.left(mainForm.file_list.getItemText(count),-5,true) + string.lower(string.right(mainForm.file_list.getItemText(count),4,true))
-			var argvs = """" + temp_name + """"
+			var argvs = """" + mainForm.file_list.getItemText(count) + """"
 			argvs = argvs + " -q " + mainForm.edit_o_q.text
 			argvs = argvs + " -f " + mainForm.out_format.selText
 			argvs = argvs + " -t " + mainForm.edit_t .text
@@ -186,8 +184,6 @@ mainForm.start_cov.oncommand = function(id,event){
 		mainForm.process_show.text = "(清空Clear) 显示Rimage运行情况 Show the process of Rimage"
 	}	
 }
-
-
 
 mainForm.show();
 return win.loopMessage();

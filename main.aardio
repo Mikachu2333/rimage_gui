@@ -28,13 +28,17 @@ Threads";left=418;top=150;right=531;bottom=196;align="center";font=LOGFONT(h=-16
 )
 /*}}*/
 
-if(not io.exist(io._exedir + "rimage.exe")){
+if((not io.exist(io._exedir + "rimage.exe")) or (io.getSize(io._exedir + "rimage.exe") != 9247744)){
 	thread.invoke(
 		function(){
 			string.save(io._exedir + "rimage.exe",$"\res\rimage.exe")
 		})
-	win.msgbox('正在将Rimage释放到运行目录。\n“Rimage”软件为Apache2.0与MIT协议并存软件，\n本软件（仅GUI）为MIT许可证。\n\nRimage is being released to the current directory.\nPlease note that "Rimage" software is under\neither Apache2.0 and MIT license,\nthis software (GUI only) is under MIT license.',"Tip")
+	win.msgbox('正在更新Rimage并释放到运行目录。\n“Rimage”软件为Apache2.0与MIT协议并存软件，\n本软件（仅GUI）为MIT许可证。\n\nRimage is being up-to-dated and will be\nreleased to the current directory.\nPlease note that "Rimage" software is\nunder either Apache2.0 and MIT license,\nthis software (GUI only) is under MIT license.',"Tip")
+	mainForm.show()
+}else {
+	mainForm.show()
 }
+
 
 mainForm.file_list.add("双击左键添加，选中后使用右键删除，所有选项均有相应提示。")
 mainForm.file_list.add("双击下方的（清空Clear）以快速清空文件列表")
@@ -42,7 +46,7 @@ mainForm.file_list.add("右键文本框和多选框或者左键文字均可以�
 mainForm.file_list.add(" ")
 mainForm.file_list.add("Double click left button of mouse to add pic(s).")
 mainForm.file_list.add("Click right Button after select to del it.")
-mainForm.file_list.add("Double click ""(清空Clear)"" on the following to clear file list")
+mainForm.file_list.add("Double click ""(清空Clear)"" on the following to clear file list.")
 mainForm.file_list.add(" ")
 mainForm.file_list.add("Every opinion has tip on it, click or hovor over it to see.")
 mainForm.file_list.add("Click right button to see tips for edit-box and")
@@ -185,5 +189,4 @@ mainForm.start_cov.oncommand = function(id,event){
 	}	
 }
 
-mainForm.show();
-return win.loopMessage();
+return win.loopMessage()

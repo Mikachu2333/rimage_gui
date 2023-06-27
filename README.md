@@ -6,7 +6,7 @@ A GUI software use rimage to compress images batchly without affecting the look 
 Thanks [rimage](https://github.com/SalOne22/rimage) and [appinn.com](https://www.appinn.com/rimage-gui/) (appinn.com is a Chinese-only Website)!
 
 # 使用说明（Useage）
-<img width="442" alt="06月26日17时47分23秒" src="https://github.com/Mikachu2333/rimage_gui/assets/63829496/d877bf9a-a71e-4ffa-adda-2a668cb2249a">
+<img width="442" alt="06月27日13时30分41秒" src="https://github.com/Mikachu2333/rimage_gui/assets/63829496/45b6535d-b680-402e-a15c-7aba4a87ace2">
 
 如你所见，软件囊括了大部分原软件的功能，一般情况下，你只需要选择
 

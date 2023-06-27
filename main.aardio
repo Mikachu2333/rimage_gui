@@ -159,16 +159,17 @@ mainForm.start_cov.oncommand = function(id,event){
 	if(count != 0){
 		win.msgbox('请选择正确的图片\nPlease select Pics we support before execute.',"Warning",,mainForm.hwnd,2000)
 	}else{
+		io.open()
 		mainForm.process_show.text = "开始运行 Rimage start"
 		for(count=1;mainForm.file_list.count;1){
 			var temp_name = string.left(mainForm.file_list.getItemText(count),-5,true) + string.lower(string.right(mainForm.file_list.getItemText(count),4,true))
-			var argvs = "-q " + mainForm.edit_o_q.text
+			var argvs = """" + temp_name + """"
+			argvs = argvs + " -q " + mainForm.edit_o_q.text
 			argvs = argvs + " -f " + mainForm.out_format.selText
 			argvs = argvs + " -t " + mainForm.edit_t .text
 			argvs = argvs + " -s _updated"
 			argvs = argvs + " --quantization " + mainForm.edit_q.text
 			argvs = argvs + " -o " + mainForm.edit_o_d.text
-			argvs = argvs + " """ + temp_name + """"
 			if(mainForm.show_hide.checked){
 				process.executeWait("""" + io._exedir + "rimage.exe""",argvs,,0/*_SW_HIDE*/)
 			}else{

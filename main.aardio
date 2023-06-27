@@ -6,15 +6,15 @@ import win.ui.tooltip
 mainForm = win.form(cls="RIMG_GUI_FORM";text="rimage_gui";right=587;bottom=346;border="thin";max=false)
 mainForm.add(
 auto_delete={cls="checkbox";text="自动删除 AutoDel";left=418;top=7;right=576;bottom=32;bgcolor=65535;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=14};
-edit_o_d={cls="edit";left=156;top=317;right=415;bottom=342;autovscroll=false;edge=1;font=LOGFONT(h=-14;name='微软雅黑');readonly=1;z=9};
+edit_o_d={cls="edit";left=156;top=317;right=454;bottom=342;autovscroll=false;edge=1;font=LOGFONT(h=-14;name='微软雅黑');readonly=1;z=9};
 edit_o_q={cls="edit";text="85";left=539;top=55;right=576;bottom=80;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');multiline=1;num=1;z=6};
 edit_q={cls="edit";text="50";left=539;top=107;right=576;bottom=132;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');multiline=1;num=1;z=11};
 edit_t={cls="edit";text="4";left=539;top=160;right=576;bottom=185;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');multiline=1;num=1;z=13};
 file_list={cls="listbox";left=8;top=35;right=415;bottom=282;edge=1;font=LOGFONT(h=-14;name='微软雅黑');hscroll=1;items={};vscroll=1;z=2};
 out_format={cls="combobox";left=457;top=253;right=544;bottom=279;edge=1;font=LOGFONT(h=-16;name='微软雅黑');items={"jpg";"png";"oxipng";"webp"};mode="dropdown";z=8};
-process_show={cls="edit";text="显示rimage运行情况 Show the process of Rimage";left=8;top=289;right=415;bottom=311;autovscroll=false;edge=1;font=LOGFONT(h=-14;name='微软雅黑');readonly=1;z=16};
+process_show={cls="edit";text="(清空Clear)显示Rimage运行情况 Show the process of Rimage";left=8;top=289;right=454;bottom=311;autovscroll=false;edge=1;font=LOGFONT(h=-14;name='微软雅黑');readonly=1;z=16};
 show_hide={cls="checkbox";text="隐藏执行 HiddenExecute";left=183;top=7;right=396;bottom=32;bgcolor=65535;checked=1;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=15};
-start_cov={cls="button";text="开始 Start";left=445;top=294;right=558;bottom=340;border=1;default=1;font=LOGFONT(h=-17;name='微软雅黑');z=4};
+start_cov={cls="button";text="开始 Start";left=465;top=289;right=578;bottom=342;border=1;default=1;font=LOGFONT(h=-17;name='微软雅黑');z=4};
 static_file_list={cls="static";text="文件列表 File list";left=3;top=7;right=137;bottom=32;align="center";center=1;font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=3};
 static_out_dir={cls="static";text="输出目录 Out-Dir：";left=8;top=317;right=156;bottom=342;align="center";center=1;font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=1};
 static_out_format={cls="static";text="输出格式
@@ -37,9 +37,16 @@ if(not io.exist(io._exedir + "rimage.exe")){
 }
 
 mainForm.file_list.add("双击左键添加，选中后使用右键删除，所有选项均有相应提示。")
+mainForm.file_list.add("双击下方的（清空Clear）以快速清空文件列表")
+mainForm.file_list.add("右键文本框和多选框或者左键文字均可以查看提示说明。")
+mainForm.file_list.add(" ")
 mainForm.file_list.add("Double click left button of mouse to add pic(s).")
 mainForm.file_list.add("Click right Button after select to del it.")
+mainForm.file_list.add("Double click ""(清空Clear)"" on the following to clear file list")
+mainForm.file_list.add(" ")
 mainForm.file_list.add("Every opinion has tip on it, click or hovor over it to see.")
+mainForm.file_list.add("Click right button to see tips for edit-box and")
+mainForm.file_list.add("multi-check-box. Left button for text-box.")
 
 var tooltipCtrl = win.ui.tooltip(mainForm)
 var tips_table = {
@@ -51,14 +58,69 @@ var tips_table = {
 	"edit_t" = 'rimage程序运行时的线程数量，根据不同电脑的\n不同性能适当增加线程数量可以加速图片的处理。\n不建议超过12。\n\nYou can increase the num of threads\naccording to the different performance of\nyour computer to accelerate processing.\nNo more than 12 please.';
 	"edit_o_d" = '程序的输出目录，默认为程序所在的目录。\n双击右侧以进行更改。\n\nThe dir for output, default is the dir\nthat process start.\nDouble click right side to change it.';
 	"start_cov" = '开始运行\n\nStart rimage';
-	"show_hide" = '是否以隐藏窗口的方式运行rimage\n\nWhether to run Rimage silently.'
+	"show_hide" = '是否以隐藏窗口的方式运行rimage\n\nWhether to run Rimage silently.';
+	"process_show" = '显示程序运行进度\n双击右键可快捷清除文件列表\nShow the process of Rimage.\nDouble click right button to clear file list.';
 }
 tooltipCtrl.add(tips_table)
 
-var count = null
+mainForm.static_file_list.oncommand = function(id,event){win.msgbox(tips_table["file_list"],"file list")}
+mainForm.static_out_quailty.oncommand = function(id,event){win.msgbox(tips_table["edit_o_q"],"out quality")}
+mainForm.static_out_format.oncommand = function(id,event){win.msgbox(tips_table["out_format"],"out format")}
+mainForm.static_quantization.oncommand = function(id,event){win.msgbox(tips_table["edit_q"],"quantization")}
+mainForm.static_thread.oncommand = function(id,event){win.msgbox(tips_table["edit_t"],"thread")}
+mainForm.static_out_dir.oncommand = function(id,event){win.msgbox(tips_table["edit_o_d"],"out dir")}
+
+mainForm.process_show.wndproc = function(hwnd,message,wParam,lParam){
+	select(message){
+		case 0x205/*_WM_RBUTTONUP*/{
+			win.msgbox(tips_table["process_show"],"process show")
+		}
+		case 0x203/*_WM_LBUTTONDBLCLK*/{
+			mainForm.file_list.clear()
+		}
+	}
+}
+mainForm.edit_o_q.wndproc = function(hwnd,message,wParam,lParam){
+	select(message){
+		case 0x205/*_WM_RBUTTONUP*/{
+			win.msgbox(tips_table["edit_o_q"],"out quailty")
+		}
+	}
+}
+mainForm.edit_q.wndproc = function(hwnd,message,wParam,lParam){
+	select(message){
+		case 0x205/*_WM_RBUTTONUP*/{
+			win.msgbox(tips_table["edit_q"],"quantization")
+		}
+	}
+}
+mainForm.edit_t.wndproc = function(hwnd,message,wParam,lParam){
+	select(message){
+		case 0x205/*_WM_RBUTTONUP*/{
+			win.msgbox(tips_table["edit_t"],"thread")
+		}
+	}
+}
+mainForm.show_hide.wndproc = function(hwnd,message,wParam,lParam){
+	select(message){
+		case 0x205/*_WM_RBUTTONUP*/{
+			win.msgbox(tips_table["show_hide"],"show hide")
+		}
+	}
+}
+mainForm.auto_delete.wndproc = function(hwnd,message,wParam,lParam){
+	select(message){
+		case 0x205/*_WM_RBUTTONUP*/{
+			win.msgbox(tips_table["auto_delete"],"auto delete")
+		}
+	}
+}
+mainForm.process_show.text = "(清空Clear) 显示Rimage运行情况 Show the process of Rimage"
 mainForm.edit_o_d.text = """" + string.left(io._exedir,-2,true) + """"
+
+var count = null
 mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
-	select(message) {
+	select(message){
 		case 0x203/*_WM_LBUTTONDBLCLK*/{
 			if(count == null){
 				mainForm.file_list.clear()
@@ -78,7 +140,7 @@ mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
 }
 
 mainForm.edit_o_d.wndproc = function(hwnd,message,wParam,lParam){
-	select(message) {
+	select(message){
 		case 0x203/*_WM_LBUTTONDBLCLK*/{
 			temp = fsys.dlg.openDir(,mainForm.hwnd,"请选择目录 Please select the Dir for output")
 			if(temp != null){
@@ -86,6 +148,9 @@ mainForm.edit_o_d.wndproc = function(hwnd,message,wParam,lParam){
 			}else{
 				win.msgbox('请选择正确的目录\nPlease select right dir to save.',"Warning",,mainForm.hwnd,2000)
 			}
+		}
+		case 0x205/*_WM_RBUTTONUP*/{
+			win.msgbox(tips_table["edit_o_d"],"out dir")
 		}
 	}
 }
@@ -96,13 +161,14 @@ mainForm.start_cov.oncommand = function(id,event){
 	}else{
 		mainForm.process_show.text = "开始运行 Rimage start"
 		for(count=1;mainForm.file_list.count;1){
+			var temp_name = string.left(mainForm.file_list.getItemText(count),-5,true) + string.lower(string.right(mainForm.file_list.getItemText(count),4,true))
 			var argvs = "-q " + mainForm.edit_o_q.text
 			argvs = argvs + " -f " + mainForm.out_format.selText
 			argvs = argvs + " -t " + mainForm.edit_t .text
 			argvs = argvs + " -s _updated"
 			argvs = argvs + " --quantization " + mainForm.edit_q.text
 			argvs = argvs + " -o " + mainForm.edit_o_d.text
-			argvs = argvs + " """ + mainForm.file_list.getItemText(count) + """"
+			argvs = argvs + " """ + temp_name + """"
 			if(mainForm.show_hide.checked){
 				process.executeWait("""" + io._exedir + "rimage.exe""",argvs,,0/*_SW_HIDE*/)
 			}else{
@@ -113,20 +179,14 @@ mainForm.start_cov.oncommand = function(id,event){
 				fsys.delete(mainForm.file_list.getItemText(count))
 				mainForm.process_show.text = "已删除Deleted"
 			}
-			mainForm.file_list.delete()
+			mainForm.file_list.delete(count)
 		}
 		win.msgbox("转换完毕！Complete!","成功Success",,mainForm.hwnd)
-		mainForm.process_show.text = "显示rimage运行情况 Show the process of Rimage"
-	}
-	
+		mainForm.process_show.text = "(清空Clear) 显示Rimage运行情况 Show the process of Rimage"
+	}	
 }
 
-mainForm.static_file_list.oncommand = function(id,event){win.msgbox(tips_table["file_list"],"file list")}
-mainForm.static_out_quailty.oncommand = function(id,event){win.msgbox(tips_table["edit_o_q"],"out quality")}
-mainForm.static_out_format.oncommand = function(id,event){win.msgbox(tips_table["out_format"],"out format")}
-mainForm.static_quantization.oncommand = function(id,event){win.msgbox(tips_table["edit_q"],"quantization")}
-mainForm.static_thread.oncommand = function(id,event){win.msgbox(tips_table["edit_t"],"thread")}
-mainForm.static_out_dir.oncommand = function(id,event){win.msgbox(tips_table["edit_o_d"],"out dir")}
+
 
 mainForm.show();
 return win.loopMessage();

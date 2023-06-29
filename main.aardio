@@ -10,9 +10,9 @@ edit_o_d={cls="edit";left=156;top=317;right=454;bottom=342;autovscroll=false;edg
 edit_o_q={cls="edit";text="85";left=539;top=55;right=576;bottom=80;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');multiline=1;num=1;z=6};
 edit_q={cls="edit";text="50";left=539;top=107;right=576;bottom=132;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');multiline=1;num=1;z=11};
 edit_t={cls="edit";text="4";left=539;top=160;right=576;bottom=185;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');multiline=1;num=1;z=13};
-file_list={cls="listbox";left=8;top=35;right=415;bottom=282;edge=1;font=LOGFONT(h=-14;name='微软雅黑');hscroll=1;items={};vscroll=1;z=2};
+file_list={cls="listbox";left=8;top=35;right=415;bottom=282;acceptfiles=1;edge=1;font=LOGFONT(h=-14;name='微软雅黑');hscroll=1;items={};vscroll=1;z=2};
 out_format={cls="combobox";left=457;top=253;right=544;bottom=279;edge=1;font=LOGFONT(h=-16;name='微软雅黑');items={"jpg";"png";"oxipng";"webp"};mode="dropdown";z=8};
-process_show={cls="edit";text="(清空Clear)显示Rimage运行情况 Show the process of Rimage";left=8;top=289;right=454;bottom=311;autovscroll=false;edge=1;font=LOGFONT(h=-14;name='微软雅黑');readonly=1;z=16};
+process_show={cls="edit";left=8;top=289;right=454;bottom=311;autovscroll=false;edge=1;font=LOGFONT(h=-14;name='微软雅黑');readonly=1;z=16};
 show_hide={cls="checkbox";text="隐藏执行 HiddenExecute";left=183;top=7;right=396;bottom=32;bgcolor=65535;checked=1;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=15};
 start_cov={cls="button";text="开始 Start";left=465;top=289;right=578;bottom=342;border=1;default=1;font=LOGFONT(h=-17;name='微软雅黑');z=4};
 static_file_list={cls="static";text="文件列表 File list";left=3;top=7;right=137;bottom=32;align="center";center=1;font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=3};
@@ -38,7 +38,6 @@ if((not io.exist(io._exedir + "rimage.exe")) or (io.getSize(io._exedir + "rimage
 }else {
 	mainForm.show()
 }
-
 
 mainForm.file_list.add("双击左键添加，选中后使用右键删除，所有选项均有相应提示。")
 mainForm.file_list.add("双击下方的（清空Clear）以快速清空文件列表")
@@ -143,6 +142,16 @@ mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
 	}
 }
 
+mainForm.onDropFiles = function(files){
+	if(count == null){
+		mainForm.file_list.clear()
+		count = 0
+	}
+	for(k,v in files){
+		mainForm.file_list.add(v)
+	}	
+}
+
 mainForm.edit_o_d.wndproc = function(hwnd,message,wParam,lParam){
 	select(message){
 		case 0x203/*_WM_LBUTTONDBLCLK*/{
@@ -164,29 +173,32 @@ mainForm.start_cov.oncommand = function(id,event){
 		win.msgbox('请选择正确的图片\nPlease select Pics we support before execute.',"Warning",,mainForm.hwnd,2000)
 	}else{
 		mainForm.process_show.text = "开始运行 Rimage start"
+		io.print(mainForm.file_list.count)
 		for(count=1;mainForm.file_list.count;1){
-			var argvs = """" + mainForm.file_list.getItemText(count) + """"
+			var argvs = """" + mainForm.file_list.getItemText(1) + """"
 			argvs = argvs + " -q " + mainForm.edit_o_q.text
 			argvs = argvs + " -f " + mainForm.out_format.selText
 			argvs = argvs + " -t " + mainForm.edit_t .text
 			argvs = argvs + " -s _updated"
 			argvs = argvs + " --quantization " + mainForm.edit_q.text
 			argvs = argvs + " -o " + mainForm.edit_o_d.text
+			
+			mainForm.process_show.text = mainForm.file_list.getItemText(1)
 			if(mainForm.show_hide.checked){
 				process.executeWait("""" + io._exedir + "rimage.exe""",argvs,,0/*_SW_HIDE*/)
 			}else{
 				process.executeWait("""" + io._exedir + "rimage.exe""",argvs)
 			}
-			mainForm.process_show.text = "成功Success  " + mainForm.file_list.getItemText(count)
+			mainForm.process_show.text = "成功Success  " + mainForm.file_list.getItemText(1)
 			if(mainForm.auto_delete.checked){
-				fsys.delete(mainForm.file_list.getItemText(count))
+				fsys.delete(mainForm.file_list.getItemText(1))
 				mainForm.process_show.text = "已删除Deleted"
 			}
-			mainForm.file_list.delete(count)
+			mainForm.file_list.delete(1)
 		}
 		win.msgbox("转换完毕！Complete!","成功Success",,mainForm.hwnd)
 		mainForm.process_show.text = "(清空Clear) 显示Rimage运行情况 Show the process of Rimage"
-	}	
+	}
 }
 
 return win.loopMessage()

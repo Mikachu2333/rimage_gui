@@ -1,5 +1,6 @@
 import fsys.dlg
 import process
+//import process.popen
 import win.ui
 import win.ui.tooltip
 /*DSG{{*/
@@ -29,7 +30,7 @@ static_out_dir={cls="static";text="输出目录 Out-Dir：";left=8;top=366;right
 static_out_format={cls="static";text="输出格式
 Out-Format";left=360;top=290;right=473;bottom=336;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=7};
 static_out_quailty={cls="static";text="输出质量
-Out-Quailty";left=418;top=43;right=531;bottom=89;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=5};
+Out-Quality";left=418;top=43;right=531;bottom=89;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=5};
 static_quantization={cls="static";text="量化程度
 Quantization";left=418;top=93;right=531;bottom=139;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=10};
 static_suffix={cls="static";text="输出后缀
@@ -39,7 +40,7 @@ Threads";left=208;top=290;right=286;bottom=336;align="center";font=LOGFONT(h=-16
 )
 /*}}*/
 
-if((not io.exist(io._exedir + "rimage.exe")) or (io.getSize(io._exedir + "rimage.exe") != 9486336)){
+if((not io.exist(io._exedir + "rimage.exe")) or (io.getSize(io._exedir + "rimage.exe") != 9529344)){
 	thread.invoke(
 		function(){
 			io.remove(io._exedir + "rimage.exe")
@@ -208,9 +209,8 @@ mainForm.onDropFiles = function(files){
 		mainForm.file_list.clear()
 		count = 0
 	}
-	for(k,v in files){
-		mainForm.file_list.add(v)
-	}	
+	for(k,v in files){mainForm.file_list.add(v)}
+	mainForm.edit_o_d.text = """" + string.left(io.splitpath(mainForm.file_list.getItemText(1)).dir,-2,true) + """"
 }
 mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
 	select(message){
@@ -222,6 +222,7 @@ mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
 			var temp1,temp2 = fsys.dlg.openEx("图片 Picture|*.png;*.jpg;*.jpeg;*.webp","选择图片 Select IMGs",,mainForm.hwnd)
 			if(temp1 != null){
 				for(i,j in temp1){mainForm.file_list.add(j,1)}
+				mainForm.edit_o_d.text = """" + string.left(io.splitpath(mainForm.file_list.getItemText(1)).dir,-2,true) + """"
 			}else{
 				win.msgbox('请选择正确的图片\nPlease select Pics we support.',"Warning",,mainForm.hwnd,2000)
 			}
@@ -255,13 +256,15 @@ mainForm.start_cov.oncommand = function(id,event){
 				}
 			}
 			argvs = argvs + " -o " + mainForm.edit_o_d.text
-			
 			mainForm.process_show.text = mainForm.file_list.getItemText(1)
 			if(mainForm.show_hide.checked){
+				//prcs,err = process.popen("""" + io._exedir + "rimage.exe""",argvs,0/*_SW_HIDE*/)
 				process.executeWait("""" + io._exedir + "rimage.exe""",argvs,,0/*_SW_HIDE*/)
 			}else{
+				//prcs,err = process.popen("""" + io._exedir + "rimage.exe""",argvs,)
 				process.executeWait("""" + io._exedir + "rimage.exe""",argvs)
 			}
+			mainForm.process_show.text = prcs.readAll()
 			mainForm.process_show.text = "成功Success  " + mainForm.file_list.getItemText(1)
 			if(mainForm.auto_delete.checked){
 				fsys.delete(mainForm.file_list.getItemText(1))

@@ -136,6 +136,13 @@ mainForm.edit_q.wndproc = function(hwnd,message,wParam,lParam){
 		}
 	}
 }
+mainForm.edit_d.wndproc = function(hwnd,message,wParam,lParam){
+	select(message){
+		case 0x205/*_WM_RBUTTONUP*/{
+			win.msgbox(tips_table["edit_d"],"dithering")
+		}
+	}
+}
 mainForm.edit_rs.wndproc = function(hwnd,message,wParam,lParam){
 	select(message){
 		case 0x205/*_WM_RBUTTONUP*/{

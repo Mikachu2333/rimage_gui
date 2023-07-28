@@ -239,36 +239,60 @@ mainForm.start_cov.oncommand = function(id,event){
 		win.msgbox('请选择正确的图片\nPlease select Pics we support before execute.',"Warning",,mainForm.hwnd,2000)
 	}else{
 		mainForm.process_show.text = "开始运行 Rimage start"
-		io.print(mainForm.file_list.count)
+		if(mainForm.edit_s.text == ""){suf_null = true}else{suf_null = false}
+		quality = mainForm.edit_o_q.text
+		format = mainForm.out_format.selText
+		thread_num = mainForm.edit_t.text
+		if(mainForm.auto_delete.checked == true){auto_del = true}else{auto_del = false}
+		suf_text = mainForm.edit_s.text
+		quant = mainForm.edit_q.text
+		dit = tostring(tonumber(mainForm.edit_d.text)/100)
+		if(!mainForm.radio_No_c.checked){
+			if(mainForm.radio_H_c.checked){
+				size_change = "H"
+			}elseif(mainForm.radio_W_c.checked){
+				size_change = "W"
+			}
+			size_num = mainForm.edit_rs.text
+		}else{size_change = "N"}
+		out_dir = mainForm.edit_o_d.text
 		for(count=1;mainForm.file_list.count;1){
 			var argvs = """" + mainForm.file_list.getItemText(1) + """"
-			argvs = argvs + " -q " + mainForm.edit_o_q.text
-			argvs = argvs + " -f " + mainForm.out_format.selText
-			argvs = argvs + " -t " + mainForm.edit_t.text
-			argvs = argvs + " -s " + mainForm.edit_s.text
-			argvs = argvs + " --quantization " + mainForm.edit_q.text
-			argvs = argvs + " --dithering " + tostring(tonumber(mainForm.edit_d.text)/100)
-			if(not mainForm.radio_No_c.checked){
-				if(mainForm.radio_H_c.checked){
-					argvs = argvs + "--height " + mainForm.edit_rs.text
-				}elseif(mainForm.radio_W_c.checked){
-					argvs = argvs + "--width " + mainForm.edit_rs.text
+			argvs = argvs + " -q " + quality
+			argvs = argvs + " -f " + format
+			argvs = argvs + " -t " + thread_num
+			if(suf_null){
+				argvs = argvs + " -s _F474404090E0"
+				auto_del = true
+			}else{
+				argvs = argvs + " -s " + suf_text
+			}
+			argvs = argvs + " --quantization " + quant
+			argvs = argvs + " --dithering " + dit
+			if(size_change != "N"){
+				if(size_change == "H"){
+					argvs = argvs + " --height " + size_num
+				}elseif(size_change == "W"){
+					argvs = argvs + " --width " + size_num
 				}
 			}
-			argvs = argvs + " -o " + mainForm.edit_o_d.text
+			argvs = argvs + " -o " + out_dir
 			mainForm.process_show.text = mainForm.file_list.getItemText(1)
 			if(mainForm.show_hide.checked){
-				//prcs,err = process.popen("""" + io._exedir + "rimage.exe""",argvs,0/*_SW_HIDE*/)
 				process.executeWait("""" + io._exedir + "rimage.exe""",argvs,,0/*_SW_HIDE*/)
 			}else{
-				//prcs,err = process.popen("""" + io._exedir + "rimage.exe""",argvs,)
 				process.executeWait("""" + io._exedir + "rimage.exe""",argvs)
 			}
-			mainForm.process_show.text = prcs.readAll()
 			mainForm.process_show.text = "成功Success  " + mainForm.file_list.getItemText(1)
-			if(mainForm.auto_delete.checked){
+			if(auto_del){
 				fsys.delete(mainForm.file_list.getItemText(1))
 				mainForm.process_show.text = "已删除Deleted"
+				if(suf_null){
+					split_name = io.splitpath(mainForm.file_list.getItemText(1)).name
+					pre_name = string.slice(out_dir,2,-2,true) + "\" + split_name + "_F474404090E0." + format
+					aft_name = string.slice(out_dir,2,-2,true) + "\" + split_name + "." + format
+					io.rename(pre_name,aft_name)
+				}
 			}
 			mainForm.file_list.delete(1)
 		}

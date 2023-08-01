@@ -7,10 +7,10 @@ import win.ui.tooltip
 mainForm = win.form(cls="RIMG_GUI_FORM";text="rimage_gui";right=587;bottom=398;border="thin";max=false)
 mainForm.add(
 auto_delete={cls="checkbox";text="自动删除 AutoDel";left=418;top=7;right=576;bottom=32;bgcolor=65535;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=14};
-edit_d={cls="edit";text="90";left=539;top=152;right=576;bottom=177;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=18};
+edit_d={cls="edit";text="95";left=539;top=152;right=576;bottom=177;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=18};
 edit_o_d={cls="edit";left=156;top=366;right=458;bottom=391;autovscroll=false;edge=1;font=LOGFONT(h=-14;name='微软雅黑');readonly=1;z=9};
 edit_o_q={cls="edit";text="85";left=539;top=53;right=576;bottom=78;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=6};
-edit_q={cls="edit";text="50";left=539;top=103;right=576;bottom=128;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=11};
+edit_q={cls="edit";text="100";left=539;top=103;right=576;bottom=128;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=11};
 edit_rs={cls="edit";left=521;top=243;right=576;bottom=268;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=24};
 edit_s={cls="edit";text="_updated";left=97;top=301;right=187;bottom=326;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');z=23};
 edit_t={cls="edit";text="4";left=291;top=301;right=328;bottom=326;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=13};
@@ -276,7 +276,7 @@ mainForm.start_cov.oncommand = function(id,event){
 					argvs = argvs + " --width " + size_num
 				}
 			}
-			argvs = argvs + " -o " + out_dir
+			argvs = argvs + " -o """ + out_dir + """"
 			mainForm.process_show.text = mainForm.file_list.getItemText(1)
 			if(mainForm.show_hide.checked){
 				process.executeWait("""" + io._exedir + "rimage.exe""",argvs,,0/*_SW_HIDE*/)
@@ -285,7 +285,7 @@ mainForm.start_cov.oncommand = function(id,event){
 			}
 			mainForm.process_show.text = "成功Success  " + mainForm.file_list.getItemText(1)
 			if(auto_del){
-				fsys.delete(mainForm.file_list.getItemText(1))
+				io.remove(mainForm.file_list.getItemText(1))
 				mainForm.process_show.text = "已删除Deleted"
 				if(suf_null){
 					split_name = io.splitpath(mainForm.file_list.getItemText(1)).name

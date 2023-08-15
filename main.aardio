@@ -40,7 +40,7 @@ Threads";left=208;top=290;right=286;bottom=336;align="center";font=LOGFONT(h=-16
 )
 /*}}*/
 
-if((not io.exist(io._exedir + "rimage.exe")) or (io.getSize(io._exedir + "rimage.exe") != 9529344)){
+if((not io.exist(io._exedir + "rimage.exe")) or (io.getSize(io._exedir + "rimage.exe") != 9596416)){
 	thread.invoke(
 		function(){
 			io.remove(io._exedir + "rimage.exe")

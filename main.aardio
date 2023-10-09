@@ -1,6 +1,5 @@
 import fsys.dlg
 import process
-//import process.popen
 import win.ui
 import win.ui.tooltip
 /*DSG{{*/
@@ -16,7 +15,7 @@ edit_H_resize={cls="edit";left=522;top=187;right=577;bottom=211;align="center";d
 edit_W_resize={cls="edit";left=522;top=212;right=577;bottom=236;align="center";disabled=1;edge=1;font=LOGFONT(h=-13;name='微软雅黑');num=1;z=27};
 edit_d={cls="edit";text="100";left=538;top=114;right=575;bottom=139;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=16};
 edit_o_d={cls="edit";left=155;top=436;right=461;bottom=461;autovscroll=false;edge=1;font=LOGFONT(h=-14;name='微软雅黑');readonly=1;z=9};
-edit_o_q={cls="edit";text="85";left=538;top=15;right=575;bottom=40;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=6};
+edit_o_q={cls="edit";text="80";left=538;top=15;right=575;bottom=40;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=6};
 edit_q={cls="edit";text="100";left=538;top=65;right=575;bottom=90;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=11};
 edit_s={cls="edit";text="_updated";left=96;top=309;right=186;bottom=334;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');z=18};
 edit_t={cls="edit";text="4";left=290;top=309;right=327;bottom=334;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');hide=1;num=1;z=13};
@@ -41,7 +40,7 @@ static_resize={cls="static";text="缩放方式 ResizeFilter";left=430;top=237;ri
 static_suffix={cls="static";text="输出后缀
 Suffix";left=14;top=298;right=92;bottom=340;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=17};
 static_thread={cls="static";text="线程数
-Threads";left=207;top=298;right=285;bottom=339;align="center";font=LOGFONT(h=-16;name='微软雅黑');hide=1;notify=1;transparent=1;z=12}
+Threads";left=207;top=298;right=285;bottom=339;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=12}
 )
 /*}}*/
 
@@ -56,6 +55,10 @@ if((not io.exist(io._exedir + "rimage.exe")) or (io.getSize(io._exedir + "rimage
 }else {
 	mainForm.show()
 }
+
+//pre-release
+io.open()
+
 mainForm.file_list.add("双击左键添加，选中后使用右键删除，所有选项均有相应提示。")
 mainForm.file_list.add("双击下方的（清空Clear）以快速清空文件列表")
 mainForm.file_list.add("将鼠标停留于文本上以查看提示说明。")
@@ -74,15 +77,15 @@ var tips_table = {
 	"preserve_structure" = '是否在输出文件时以原有目录结构输出\n\nWhether to output the file in the\noriginal directory structure.';
 	"backup_original" = '是否在原图片上加“.backup”后缀以备份\n\nWhether to appends ".backup" to\ninput file(s) names';
 	
-	"edit_o_q" = '此数值决定了您图片的输出质量，范围为1~100。\n\nThis value determines the output quality of\nyour image, ranging from 1 to 100.';
-	"edit_q" = '量化是另一种意义上的图片质量，范围为1~100。\n如果您不确定或者不清楚改变它的结果，请将其\n保持原样以获得更小体积或者设置为100以获得\n更好的质量。\n\nQuantification is another form of image quality,\nranging from 1 to 100.\nIf you have no knowledge or unclear about it,\nplease just set it to 100 for better quality or\nkeep it for smaller size.';
-	"edit_d" = '颜色抖动决定了图像的颜色输出质量，越高质量越\n好，图片越小本选项应当越大，范围为1~100\n\nColor dithering determines the output quality\nof the image higher is better, especially the\nsize of pic is very small, ranging from 1~100';
+	"edit_o_q" = '此数值决定了您图片的输出质量，范围为1～100。\n\nThis value determines the output quality of\nyour image, ranging from 1 to 100.';
+	"edit_q" = '量化是另一种意义上的图片质量，范围为1～100。\n如果您不确定或者不清楚改变它的结果，请将其\n保持原样以获得更小体积或者设置为100以获得\n更好的质量。\n\nQuantification is another form of image quality,\nranging from 1 to 100.\nIf you have no knowledge or unclear about it,\nplease just set it to 100 for better quality or\nkeep it for smaller size.';
+	"edit_d" = '颜色抖动决定了图像的输出色差情况，越高质量越\n好，图片越小本选项应当越大，范围为1～100。\n\nColor dithering determines the output quality\nof the image higher is better, especially the\nsize of pic is very small, ranging from 1～100';
 	"check_O_resize" = '不改变图像大小\n\nNo change in Pic size.';
 	"check_H_resize" = '缩放到此高度\n\nResize Pic(s) to the Height you input.';
 	"check_W_resize" = '缩放到此宽度\n\nResize Pic(s) to the Width you input.';
-	"combobox_resize_filter" = '使用其中一种方式进行缩放\n\nFilter used for image resizing.';
+	"combobox_resize_filter" = '使用不同算法进行缩放。\n\nFilter used for image resizing.';
 	
-	"edit_t" = 'rimage程序运行时的线程数量，根据不同电脑的\n不同性能适当增加线程数量可以加速图片的处理。\n不建议超过12。\n\nYou can increase the num of threads\naccording to the different performance of\nyour computer to accelerate processing.\nNo more than 12 please.';
+	"edit_t" = 'rimage程序运行时的线程数量，根据不同电脑的\n不同性能适当增加线程数量可以加速图片的处理。\n图片小于5M时不建议超过8。\n\nYou can increase the num of threads\naccording to the different performance of\nyour computer to accelerate processing.\nNo more than 8 when pic size is lower than\n5MB please.';
 	"edit_o_d" = '程序的输出目录，默认为程序所在的目录。\n双击文本框以进行更改。\n\nThe dir for output, default is the dir that\nprocess start.\nDouble click text bar to change it.';
 	"edit_s" = '图片的输出后缀，如abc.png→abc_updated.png\n\nSuffix when output, example,\nabc.png→abc_updated.png';
 	"out_format" = '您可以在此处选择您希望输出的文件格式。\n不支持手动修改！\n\nYou can choose the file format you want here.\nNever change it by input!';
@@ -225,7 +228,7 @@ mainForm.start_cov.oncommand = function(id,event){
 		if(mainForm.auto_delete.checked == true){auto_del = true}else{auto_del = false}
 		if(mainForm.backup_original.checked == true){back_up = true}else{back_up = false}
 		if(mainForm.preserve_structure.checked == true){p_struct = true}
-		if(mainForm.edit_s.text != ""){suf_text = mainForm.edit_s.text}else{suf_text = false}
+		if(mainForm.edit_s.text != ""){suf_text = mainForm.edit_s.text}else{suf_text = ""}
 		quant = mainForm.edit_q.text
 		dit = tostring(tonumber(mainForm.edit_d.text)/100)
 		if(!mainForm.check_O_resize.checked){
@@ -241,7 +244,7 @@ mainForm.start_cov.oncommand = function(id,event){
 		}
 		if(size_change){r_filter = mainForm.combobox_resize_filter.selText}
 		out_dir = mainForm.edit_o_d.text
-
+		
 		for(count=1;mainForm.file_list.count;1){
 			var temp_file = string.replace(mainForm.file_list.getItemText(1),"@\","\\")
 			var argvs = """" + temp_file + """"
@@ -249,7 +252,7 @@ mainForm.start_cov.oncommand = function(id,event){
 			argvs = argvs + " --codec " + format
 			argvs = argvs + " --output """ + out_dir + """"
 			if(p_struct){argvs = argvs + " --recursive "}
-			if(suf_text){argvs = argvs + " --suffix " + suf_text}
+			if(suf_text != ""){argvs = argvs + " --suffix " + suf_text}
 			if(back_up){argvs = argvs + " --backup "}
 			argvs = argvs + " --quantization " + quant
 			argvs = argvs + " --dithering " + dit
@@ -271,8 +274,11 @@ mainForm.start_cov.oncommand = function(id,event){
 			}
 			mainForm.process_show.text = "成功Success  " + mainForm.file_list.getItemText(1)
 			if(auto_del){
-				io.remove(mainForm.file_list.getItemText(1))
-				mainForm.process_show.text = "已删除Deleted"
+				new_file_path = string.slice(out_dir,2,-2,true) + "\" + io.splitpath(temp_file).name + suf_text + "." + format
+				if(io.exist(new_file_path)){
+					io.remove(mainForm.file_list.getItemText(1))
+					mainForm.process_show.text = "已删除Deleted"
+				}else{mainForm.process_show.text = "失败，已保留原件Failed&File reserved"}
 			}
 			mainForm.file_list.delete(1)
 		}
@@ -280,7 +286,5 @@ mainForm.start_cov.oncommand = function(id,event){
 		mainForm.process_show.text = "(清空Clear) 显示Rimage运行情况 Show the process of Rimage"
 	}
 }
-
-
 
 return win.loopMessage()

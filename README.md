@@ -6,16 +6,19 @@ A GUI software use rimage to compress images batchly without affecting the look 
 # 感谢（Thanks）[rimage](https://github.com/SalOne22/rimage)和（and）[小众论坛](https://www.appinn.com/rimage-gui/)！（appinn.com is a Chinese-only Website）
 
 # 使用说明（Useage）
-![图片](https://github.com/Mikachu2333/rimage_gui/assets/63829496/d209bacc-8eb4-4645-94bd-6f8ab331c56b)
-
+<img width="1000" alt="GUI" src="https://github.com/Mikachu2333/rimage_gui/assets/63829496/d467c805-1ec8-481e-9758-4fe066028b37">
 
 如你所见，软件囊括了大部分原软件的功能，一般情况下，你只需要选择
 
 As you can see, the software encompasses most of the features of the original software, and in general, you only need to select
 
-**是否自动删除（AutoDel）**
+**是否删除原件（AutoDel）**
 
 **是否隐藏运行（HiddenExecute）**
+
+**是否原结构输出（PreservingFolderStructure）**
+
+**是否保存备份（BackupOriginal）**
 
 **输出质量（Out-Quality）**
 
@@ -24,8 +27,6 @@ As you can see, the software encompasses most of the features of the original so
 然后点击“开始”即可。And click the Start button.
 
 # 提示（Tips）
-<img width="442" alt="06月26日17时47分23秒" src=https://github.com/Mikachu2333/rimage_gui/assets/63829496/46094330-fe49-410b-a5e3-6320313fb276>
-
 <img width="714" alt="06月26日17时59分45秒" src="https://github.com/Mikachu2333/rimage_gui/assets/63829496/c7e11470-088e-4057-9d2d-7ae7730df40e">
 
 你可以通过鼠标悬停或者点击你想要了解的内容来查看解释。

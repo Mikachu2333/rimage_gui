@@ -6,7 +6,7 @@ A GUI software use rimage to compress images batchly without affecting the look 
 # 感谢（Thanks）[rimage](https://github.com/SalOne22/rimage)和（and）[小众论坛](https://www.appinn.com/rimage-gui/)！（appinn.com is a Chinese-only Website）
 
 # 使用说明（Useage）
-<img width="1000" alt="GUI" src="https://github.com/Mikachu2333/rimage_gui/assets/63829496/d467c805-1ec8-481e-9758-4fe066028b37">
+![图片](https://github.com/Mikachu2333/rimage_gui/assets/63829496/76c0c08b-01d7-4459-b395-505f19cbeacc)
 
 如你所见，软件囊括了大部分原软件的功能，一般情况下，你只需要选择
 
@@ -38,5 +38,4 @@ You can view the explanation by hovering or clicking on the content you want to 
 All the available options are explained in detail.
 
 # 效果图（Pic After Use）
-<img width="666" alt="06月24日21时18分21秒" src="https://github.com/Mikachu2333/rimage_gui/assets/63829496/065cc7ab-db26-439b-99b1-ef368146c963">
-<img width="560" alt="12" src="https://github.com/Mikachu2333/rimage_gui/assets/63829496/9a41710f-99db-4372-8c2c-6b68f446a041">
+![图片](https://github.com/Mikachu2333/rimage_gui/assets/63829496/dead98b0-63b7-4f1b-a0d2-fe359147d5bc)

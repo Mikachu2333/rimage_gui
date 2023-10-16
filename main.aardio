@@ -10,18 +10,18 @@ backup_original={cls="checkbox";text="保存备份 BackupOriginal";left=7;top=37
 check_H_resize={cls="checkbox";text="长 Height";left=423;top=190;right=518;bottom=209;font=LOGFONT(h=-13;name='微软雅黑');z=25};
 check_O_resize={cls="checkbox";text="不变 Original";left=423;top=166;right=528;bottom=185;checked=1;font=LOGFONT(h=-13;name='微软雅黑');z=28};
 check_W_resize={cls="checkbox";text="宽 Width";left=423;top=215;right=518;bottom=234;font=LOGFONT(h=-13;name='微软雅黑');z=26};
-combobox_resize_filter={cls="combobox";left=434;top=264;right=569;bottom=284;edge=1;font=LOGFONT(h=-16;name='微软雅黑');items={"lanczos3";"point";"triangle";"catrom";"mitchell"};mode="dropdown";z=29};
+combobox_resize_filter={cls="combobox";left=454;top=265;right=547;bottom=285;edge=1;font=LOGFONT(h=-14;name='微软雅黑');items={"lanczos3";"point";"triangle";"catrom";"mitchell"};mode="dropdown";z=29};
 edit_H_resize={cls="edit";left=522;top=187;right=577;bottom=211;align="center";disabled=1;edge=1;font=LOGFONT(h=-13;name='微软雅黑');num=1;z=19};
 edit_W_resize={cls="edit";left=522;top=212;right=577;bottom=236;align="center";disabled=1;edge=1;font=LOGFONT(h=-13;name='微软雅黑');num=1;z=27};
 edit_d={cls="edit";text="100";left=538;top=114;right=575;bottom=139;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=16};
-edit_o_d={cls="edit";left=155;top=436;right=461;bottom=461;autovscroll=false;edge=1;font=LOGFONT(h=-14;name='微软雅黑');readonly=1;z=9};
-edit_o_q={cls="edit";text="80";left=538;top=15;right=575;bottom=40;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=6};
+edit_o_d={cls="edit";left=155;top=436;right=461;bottom=461;autovscroll=false;disabled=1;edge=1;font=LOGFONT(h=-14;name='微软雅黑');readonly=1;z=9};
+edit_o_q={cls="edit";text="85";left=538;top=15;right=575;bottom=40;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=6};
 edit_q={cls="edit";text="100";left=538;top=65;right=575;bottom=90;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=11};
-edit_s={cls="edit";text="_updated";left=96;top=309;right=186;bottom=334;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');z=18};
-edit_t={cls="edit";text="4";left=290;top=309;right=327;bottom=334;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');hide=1;num=1;z=13};
+edit_s={cls="edit";text="_updated";left=96;top=308;right=186;bottom=333;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');z=18};
+edit_t={cls="edit";text="4";left=290;top=308;right=327;bottom=333;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=13};
 file_list={cls="listbox";left=7;top=31;right=414;bottom=295;acceptfiles=1;edge=1;font=LOGFONT(h=-14;name='微软雅黑');hscroll=1;items={};vscroll=1;z=20};
-out_format={cls="combobox";left=478;top=308;right=565;bottom=334;edge=1;font=LOGFONT(h=-16;name='微软雅黑');items={"jpg";"png";"oxipng";"webp";"jpegxl";"avif"};mode="dropdown";z=8};
-preserve_structure={cls="checkbox";text="原结构输出 PreservingFolderStructure";left=258;top=346;right=575;bottom=371;bgcolor=65535;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=23};
+out_format={cls="combobox";left=478;top=307;right=565;bottom=333;edge=1;font=LOGFONT(h=-16;name='微软雅黑');items={"jpg";"png";"oxipng";"webp";"jpegxl";"avif"};mode="dropdown";z=8};
+preserve_structure={cls="checkbox";text="原目录输出 PreservingFolderStructure";left=258;top=346;right=575;bottom=371;bgcolor=65535;checked=1;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=23};
 process_show={cls="edit";left=7;top=408;right=461;bottom=430;autovscroll=false;edge=1;font=LOGFONT(h=-14;name='微软雅黑');readonly=1;z=14};
 resize_box={cls="groupbox";text="Resize_choose";left=419;top=147;right=583;bottom=294;edge=1;font=LOGFONT(name='微软雅黑');z=1};
 show_hide={cls="checkbox";text="隐藏执行 HiddenExecute";left=7;top=346;right=220;bottom=371;bgcolor=65535;checked=1;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=21};
@@ -31,20 +31,20 @@ Dithering";left=417;top=104;right=530;bottom=150;align="center";font=LOGFONT(h=-
 static_file_list={cls="static";text="文件列表 File list";left=7;top=4;right=141;bottom=29;align="center";center=1;font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=3};
 static_out_dir={cls="static";text="输出目录 Out-Dir：";left=7;top=436;right=155;bottom=461;align="center";center=1;font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=2};
 static_out_format={cls="static";text="输出格式
-Out-Format";left=359;top=298;right=472;bottom=339;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=7};
+Out-Format";left=359;top=299;right=472;bottom=340;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=7};
 static_out_quailty={cls="static";text="输出质量
 Out-Quality";left=417;top=5;right=530;bottom=51;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=5};
 static_quantization={cls="static";text="量化程度
 Quantization";left=417;top=55;right=530;bottom=101;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=10};
-static_resize={cls="static";text="缩放方式 ResizeFilter";left=430;top=237;right=572;bottom=263;align="center";center=1;font=LOGFONT(h=-13;name='微软雅黑');notify=1;transparent=1;z=30};
+static_resize={cls="static";text="缩放算法 ResizeFilter";left=430;top=237;right=572;bottom=263;align="center";center=1;font=LOGFONT(h=-13;name='微软雅黑');notify=1;transparent=1;z=30};
 static_suffix={cls="static";text="输出后缀
-Suffix";left=14;top=298;right=92;bottom=340;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=17};
+Suffix";left=14;top=299;right=92;bottom=341;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=17};
 static_thread={cls="static";text="线程数
-Threads";left=207;top=298;right=285;bottom=339;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=12}
+Threads";left=207;top=299;right=285;bottom=340;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=12}
 )
 /*}}*/
 
-if((not io.exist(io._exedir + "rimage.exe")) or (io.getSize(io._exedir + "rimage.exe") != 27059441)){
+if((not io.exist(io._exedir + "rimage.exe")) or (io.getSize(io._exedir + "rimage.exe") != 27413536)){
 	thread.invoke(
 		function(){
 			io.remove(io._exedir + "rimage.exe")
@@ -57,7 +57,7 @@ if((not io.exist(io._exedir + "rimage.exe")) or (io.getSize(io._exedir + "rimage
 }
 
 //pre-release
-io.open()
+//io.open()
 
 mainForm.file_list.add("双击左键添加，选中后使用右键删除，所有选项均有相应提示。")
 mainForm.file_list.add("双击下方的（清空Clear）以快速清空文件列表")
@@ -86,7 +86,7 @@ var tips_table = {
 	"combobox_resize_filter" = '使用不同算法进行缩放。\n\nFilter used for image resizing.';
 	
 	"edit_t" = 'rimage程序运行时的线程数量，根据不同电脑的\n不同性能适当增加线程数量可以加速图片的处理。\n图片小于5M时不建议超过8。\n\nYou can increase the num of threads\naccording to the different performance of\nyour computer to accelerate processing.\nNo more than 8 when pic size is lower than\n5MB please.';
-	"edit_o_d" = '程序的输出目录，默认为程序所在的目录。\n双击文本框以进行更改。\n\nThe dir for output, default is the dir that\nprocess start.\nDouble click text bar to change it.';
+	"edit_o_d" = '程序的输出目录，默认为程序所在的目录。\n双击文本框以进行更改。\n选择“原目录输出”时无效。\n\nThe dir for output, default is the dir that\nprocess start.\nDouble click text bar to change it.\nInvalid when selecting\n"PreservingFolderStructure".';
 	"edit_s" = '图片的输出后缀，如abc.png→abc_updated.png\n\nSuffix when output, example,\nabc.png→abc_updated.png';
 	"out_format" = '您可以在此处选择您希望输出的文件格式。\n不支持手动修改！\n\nYou can choose the file format you want here.\nNever change it by input!';
 	
@@ -151,6 +151,14 @@ mainForm.auto_delete.oncommand = function(id,event){
 		mainForm.backup_original.checked = false
 	}else {
 		mainForm.backup_original.checked = false
+	}
+}
+
+mainForm.preserve_structure.oncommand = function(id,event){
+	if(mainForm.edit_o_d.disabled == true){
+		mainForm.edit_o_d.disabled = false
+	}else{
+		mainForm.edit_o_d.disabled = true
 	}
 }
 
@@ -230,7 +238,7 @@ mainForm.start_cov.oncommand = function(id,event){
 		if(mainForm.preserve_structure.checked == true){p_struct = true}
 		if(mainForm.edit_s.text != ""){suf_text = mainForm.edit_s.text}else{suf_text = ""}
 		quant = mainForm.edit_q.text
-		dit = tostring(tonumber(mainForm.edit_d.text)/100)
+		dit = mainForm.edit_d.text
 		if(!mainForm.check_O_resize.checked){
 			size_change = true
 			if(mainForm.edit_H_resize.disabled == false){
@@ -250,8 +258,11 @@ mainForm.start_cov.oncommand = function(id,event){
 			var argvs = """" + temp_file + """"
 			argvs = argvs + " --quality " + quality
 			argvs = argvs + " --codec " + format
-			argvs = argvs + " --output """ + out_dir + """"
-			if(p_struct){argvs = argvs + " --recursive "}
+			if(p_struct){
+				argvs = argvs + " --recursive "
+			}else{
+				argvs = argvs + " --output """ + out_dir + """"
+			}
 			if(suf_text != ""){argvs = argvs + " --suffix " + suf_text}
 			if(back_up){argvs = argvs + " --backup "}
 			argvs = argvs + " --quantization " + quant
@@ -282,7 +293,8 @@ mainForm.start_cov.oncommand = function(id,event){
 			}
 			mainForm.file_list.delete(1)
 		}
-		win.msgbox("转换完毕！Complete!","成功Success",,mainForm.hwnd)
+		win.setForeground(mainForm.hwnd)
+		win.msgbox("转换完毕！Complete!","成功Success",,mainForm.hwnd,10000)
 		mainForm.process_show.text = "(清空Clear) 显示Rimage运行情况 Show the process of Rimage"
 	}
 }

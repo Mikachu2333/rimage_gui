@@ -44,20 +44,23 @@ Threads";left=207;top=299;right=285;bottom=340;align="center";font=LOGFONT(h=-16
 )
 /*}}*/
 
-if((not io.exist(io._exedir + "rimage.exe")) or (io.getSize(io._exedir + "rimage.exe") != 27413536)){
+var judge_exe = not io.exist(io._exedir + "rimage.exe")
+var judge_ver = (io.getSize(io._exedir + "rimage.exe") != 27413536)
+var judge_dll = not io.exist(io._exedir + "libwinpthread-1.dll")
+if(judge_ver or judge_dll or judge_exe){
 	thread.invoke(
 		function(){
 			io.remove(io._exedir + "rimage.exe")
 			string.save(io._exedir + "rimage.exe",$"\res\rimage.exe")
+			string.save(io._exedir + "libgcc_s_seh-1.dll",$"\res\libgcc_s_seh-1.dll")
+			string.save(io._exedir + "libstdc++-6.dll",$"\res\libstdc++-6.dll")
+			string.save(io._exedir + "libwinpthread-1.dll",$"\res\libwinpthread-1.dll")
 		})
-	win.msgbox('正在更新Rimage并释放到运行目录。\n“Rimage”软件为Apache2.0与MIT协议并存软件，\n本软件（仅GUI）为MIT许可证。\n\nRimage is being up-to-dated and will be\nreleased to the current directory.\nPlease note that "Rimage" software is\nunder either Apache2.0 and MIT license,\nthis software (GUI only) is under MIT license.',"Tip")
-	mainForm.show()
-}else {
+	win.msgbox('正在更新并释放到运行目录。\n“Rimage”软件为Apache2.0与MIT协议并存软件，\n本软件（仅GUI）为MIT许可证。\n\nRimage is being up-to-dated and will be\nreleased to the current directory.\nPlease note that "Rimage" software is\nunder either Apache2.0 and MIT license,\nthis software (GUI only) is under MIT license.',"Tip")
 	mainForm.show()
 }
 
-//pre-release
-//io.open()
+
 
 mainForm.file_list.add("双击左键添加，选中后使用右键删除，所有选项均有相应提示。")
 mainForm.file_list.add("双击下方的（清空Clear）以快速清空文件列表")
@@ -135,7 +138,7 @@ mainForm.check_O_resize.oncommand = function(id,event){
 	mainForm.edit_H_resize.disabled = true
 	mainForm.edit_W_resize.text = ""
 	mainForm.edit_W_resize.disabled = true
-	//不能用disabledText=""，会出现判断问题，虽然不知道为啥……
+	//不能用disabledText=""
 }
 
 mainForm.backup_original.oncommand = function(id,event){
@@ -199,7 +202,23 @@ mainForm.onDropFiles = function(files){
 		mainForm.file_list.clear()
 		count = 0
 	}
-	for(k,v in files){mainForm.file_list.add(v)}
+	var temp_list = {
+		".png";
+		".jpg";
+		".jpeg";
+		".oxipng";
+		".webp";
+		".mozjpeg";
+		".avif";
+	}
+	for(k,v in files){
+		temp_ext = io.splitpath(v).ext
+		for m,n in temp_list{
+			if(n == temp_ext){
+				mainForm.file_list.add(v)
+			}
+		}
+	}
 	mainForm.edit_o_d.text = """" + string.left(io.splitpath(mainForm.file_list.getItemText(1)).dir,-2,true) + """"
 }
 mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
@@ -209,7 +228,7 @@ mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
 				mainForm.file_list.clear()
 				count = 0
 			}
-			var temp1,temp2 = fsys.dlg.openEx("图片 Picture|*.png;*.jpg;*.jpeg;*.webp;*.jxl;*.avif;*.oxipng;*.mozjpeg;*.jpegxl","选择图片 Select IMGs",,mainForm.hwnd)
+			var temp1,temp2 = fsys.dlg.openEx("图片 Picture|*.png;*.jpg;*.jpeg;*.webp;*.avif;*.oxipng;*.mozjpeg","选择图片 Select IMGs",,mainForm.hwnd)
 			if(temp1 != null){
 				for(i,j in temp1){mainForm.file_list.add(j,1)}
 				mainForm.edit_o_d.text = """" + string.left(io.splitpath(mainForm.file_list.getItemText(1)).dir,-2,true) + """"
@@ -256,10 +275,10 @@ mainForm.start_cov.oncommand = function(id,event){
 		for(count=1;mainForm.file_list.count;1){
 			var temp_file = string.replace(mainForm.file_list.getItemText(1),"@\","\\")
 			var argvs = """" + temp_file + """"
-			argvs = argvs + " --quality " + quality
+			argvs = argvs + " -q " + quality
 			argvs = argvs + " --codec " + format
 			if(p_struct){
-				argvs = argvs + " --recursive "
+				argvs = argvs + " -r "
 			}else{
 				argvs = argvs + " --output """ + out_dir + """"
 			}
@@ -275,8 +294,8 @@ mainForm.start_cov.oncommand = function(id,event){
 					argvs = argvs + " --width " + W_resize
 				}
 			}
-			//argvs = argvs + " -t " + thread_num
-
+			argvs = argvs + " -t " + thread_num
+			
 			mainForm.process_show.text = mainForm.file_list.getItemText(1)
 			if(mainForm.show_hide.checked){
 				process.executeWait("""" + io._exedir + "rimage.exe""",argvs,,0/*_SW_HIDE*/)

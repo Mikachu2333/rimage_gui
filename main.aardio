@@ -44,10 +44,14 @@ Threads";left=207;top=299;right=285;bottom=340;align="center";font=LOGFONT(h=-16
 )
 /*}}*/
 
-var judge_exe = not io.exist(io._exedir + "rimage.exe")
-var judge_ver = (io.getSize(io._exedir + "rimage.exe") != 27413536)
+var judge_size = (io.getSize(io._exedir + "rimage.exe") != 27413536)
 var judge_dll = not io.exist(io._exedir + "libwinpthread-1.dll")
-if(judge_ver or judge_dll or judge_exe){
+var judge_original = judge_size or judge_dll
+var judge_real_rimage = not io.exist(io._exedir + "realesrgan_rimage\rimage.exe")
+var judge_real_dll = not io.exist(io._exedir + "realesrgan_rimage\libwinpthread-1.dll")
+judge_real_sum = judge_real_rimage or judge_real_dll
+
+if(judge_original and judge_real_sum){
 	thread.invoke(
 		function(){
 			io.remove(io._exedir + "rimage.exe")
@@ -57,9 +61,8 @@ if(judge_ver or judge_dll or judge_exe){
 			string.save(io._exedir + "libwinpthread-1.dll",$"\res\libwinpthread-1.dll")
 		})
 	win.msgbox('正在更新并释放到运行目录。\n“Rimage”软件为Apache2.0与MIT协议并存软件，\n本软件（仅GUI）为MIT许可证。\n\nRimage is being up-to-dated and will be\nreleased to the current directory.\nPlease note that "Rimage" software is\nunder either Apache2.0 and MIT license,\nthis software (GUI only) is under MIT license.',"Tip")
-	mainForm.show()
 }
-
+mainForm.show()
 
 
 mainForm.file_list.add("双击左键添加，选中后使用右键删除，所有选项均有相应提示。")
@@ -296,11 +299,17 @@ mainForm.start_cov.oncommand = function(id,event){
 			}
 			argvs = argvs + " -t " + thread_num
 			
+			
 			mainForm.process_show.text = mainForm.file_list.getItemText(1)
+			if(judge_real_sum){
+				rimage_path = """" + io._exedir + "rimage.exe"""
+			}else {
+				rimage_path = """" + io._exedir + "realesrgan_rimage\rimage.exe"""
+			}
 			if(mainForm.show_hide.checked){
-				process.executeWait("""" + io._exedir + "rimage.exe""",argvs,,0/*_SW_HIDE*/)
+				process.executeWait(rimage_path,argvs,,0/*_SW_HIDE*/)
 			}else{
-				process.executeWait("""" + io._exedir + "rimage.exe""",argvs)
+				process.executeWait(rimage_path,argvs)
 			}
 			mainForm.process_show.text = "成功Success  " + mainForm.file_list.getItemText(1)
 			if(auto_del){

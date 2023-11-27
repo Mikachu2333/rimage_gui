@@ -244,7 +244,7 @@ mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
 		}
 	}
 }
-//io.open()
+
 
 mainForm.start_cov.oncommand = function(id,event){
 	if(count != 0){
@@ -318,10 +318,15 @@ mainForm.start_cov.oncommand = function(id,event){
 			}
 			mainForm.process_show.text = "成功Success  " + temp_file
 			if(auto_del){
-				if(suf_null){
-					new_file_path = string.slice(out_dir,2,-2,true) + "\" + io.splitpath(temp_file).name + "." + format
+				if(p_struct){
+					new_file_dir = io.splitpath(temp_file).dir + "\"
 				}else{
-					new_file_path = string.slice(out_dir,2,-2,true) + "\" + io.splitpath(temp_file).name + suf_text + "." + format
+					new_file_dir = string.slice(out_dir,2,-2,true) + "\"
+				}
+				if(suf_null){
+					new_file_path = new_file_dir + io.splitpath(temp_file).name + "." + format
+				}else{
+					new_file_path = new_file_dir + io.splitpath(temp_file).name + suf_text + "." + format
 				}
 				if(io.exist(new_file_path)){
 					if((!((io.splitpath(temp_file).ext == ("." + format)) and (io.splitpath(temp_file).dir == io.splitpath(new_file_path).dir))) or (!suf_null)){

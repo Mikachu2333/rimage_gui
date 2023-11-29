@@ -238,6 +238,7 @@ mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
 			}else{
 				win.msgbox('请选择正确的图片\nPlease select Pics we support.',"Warning",,mainForm.hwnd,2000)
 			}
+			fsys.setCurDir(io._exedir)
 		}
 		case 0x204/*_WM_RBUTTONDOWN*/{
 			mainForm.file_list.delete()
@@ -290,8 +291,8 @@ mainForm.start_cov.oncommand = function(id,event){
 			}else{
 				argvs = argvs + " --output """ + out_dir + """"
 			}
-			if(!suf_null){argvs = argvs + " --suffix " + suf_text}
-			if(back_up){argvs = argvs + " --backup "}
+			if(!suf_null){argvs = argvs + " --suffix """ + suf_text + """"}
+			if(back_up){argvs = argvs + " --backup"}
 			argvs = argvs + " --quantization " + quant
 			argvs = argvs + " --dithering " + dit
 			if(size_change){

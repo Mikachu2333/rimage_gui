@@ -46,11 +46,4 @@ All the available options are explained in detail.
 
 ## Star
 
-<a href="https://star-history.com/#Mikachu2333/rimage_gui&SalOne22/rimage&Timeline">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Mikachu2333/rimage_gui,SalOne22/rimage&type=Timeline&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Mikachu2333/rimage_gui,SalOne22/rimage&type=Timeline" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Mikachu2333/rimage_gui,SalOne22/rimage&type=Timeline" />
-  </picture>
-</a>
-
+[![Star History Chart](https://api.star-history.com/svg?repos=Mikachu2333/rimage_gui&type=Timeline)](https://star-history.com/#Mikachu2333/rimage_gui&Timeline)

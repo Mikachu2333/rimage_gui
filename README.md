@@ -3,12 +3,13 @@
 
 A GUI software use rimage to compress images batchly without affecting the look and feel. 
 
-# 感谢（Thanks）[rimage](https://github.com/SalOne22/rimage)和（and）[小众论坛](https://www.appinn.com/rimage-gui/)！（appinn.com is a Chinese-only Website）
+## 感谢（Thanks）
+[rimage](https://github.com/SalOne22/rimage)和（and）[小众论坛](https://www.appinn.com/rimage-gui/)！（appinn.com is a Chinese-only Website）
 
-# 禁止
+## 禁止
 本软件以及衍生项目禁止一切用户在吾爱破解发布，因其内嵌不符合吾爱版规的“广告”。
 
-# 使用说明（Useage）
+## 使用说明（Useage）
 ![图片](https://github.com/Mikachu2333/rimage_gui/assets/63829496/76c0c08b-01d7-4459-b395-505f19cbeacc)
 
 如你所见，软件囊括了大部分原软件的功能，一般情况下，你只需要选择
@@ -29,7 +30,7 @@ As you can see, the software encompasses most of the features of the original so
 
 然后点击“开始”即可。And click the Start button.
 
-# 提示（Tips）
+## 提示（Tips）
 <img width="714" alt="06月26日17时59分45秒" src="https://github.com/Mikachu2333/rimage_gui/assets/63829496/c7e11470-088e-4057-9d2d-7ae7730df40e">
 
 你可以通过鼠标悬停或者点击你想要了解的内容来查看解释。
@@ -40,5 +41,16 @@ You can view the explanation by hovering or clicking on the content you want to 
 
 All the available options are explained in detail.
 
-# 效果图（Pic After Use）
+## 效果图（Pic After Use）
 ![图片](https://github.com/Mikachu2333/rimage_gui/assets/63829496/dead98b0-63b7-4f1b-a0d2-fe359147d5bc)
+
+## Star
+
+<a href="https://star-history.com/#Mikachu2333/rimage_gui&SalOne22/rimage&Timeline">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Mikachu2333/rimage_gui,SalOne22/rimage&type=Timeline&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Mikachu2333/rimage_gui,SalOne22/rimage&type=Timeline" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Mikachu2333/rimage_gui,SalOne22/rimage&type=Timeline" />
+  </picture>
+</a>
+

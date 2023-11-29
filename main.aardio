@@ -214,15 +214,17 @@ mainForm.onDropFiles = function(files){
 		".mozjpeg";
 		".avif";
 	}
-	for(k,v in files){
-		temp_ext = io.splitpath(v).ext
-		for m,n in temp_list{
-			if(n == temp_ext){
-				mainForm.file_list.add(v)
+	if(!fsys.isDir(files[1])){
+		for(k,v in files){
+			temp_ext = io.splitpath(v).ext
+			for m,n in temp_list{
+				if(n == temp_ext){
+					mainForm.file_list.add(v)
+					mainForm.edit_o_d.text = """" + string.left(io.splitpath(mainForm.file_list.getItemText(1)).dir,-2,true) + """"
+				}
 			}
 		}
-	}
-	mainForm.edit_o_d.text = """" + string.left(io.splitpath(mainForm.file_list.getItemText(1)).dir,-2,true) + """"
+	}else{win.msgbox('请勿使用文件夹\nDir is not supported.',"Warning",,mainForm.hwnd,2000)}
 }
 mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
 	select(message){
@@ -320,20 +322,18 @@ mainForm.start_cov.oncommand = function(id,event){
 			mainForm.process_show.text = "成功Success  " + temp_file
 			if(auto_del){
 				if(p_struct){
-					new_file_dir = io.splitpath(temp_file).dir + "\"
+					new_file_dir = io.splitpath(temp_file).dir
 				}else{
-					new_file_dir = string.slice(out_dir,2,-2,true) + "\"
+					new_file_dir = string.slice(out_dir,2,-2,true)
 				}
 				if(suf_null){
 					new_file_path = new_file_dir + io.splitpath(temp_file).name + "." + format
 				}else{
 					new_file_path = new_file_dir + io.splitpath(temp_file).name + suf_text + "." + format
 				}
-				if(io.exist(new_file_path)){
-					if((!((io.splitpath(temp_file).ext == ("." + format)) and (io.splitpath(temp_file).dir == io.splitpath(new_file_path).dir))) or (!suf_null)){
-						io.remove(temp_file)
-						mainForm.process_show.text = "已删除Deleted"
-					}
+				if((io.exist(new_file_path)) and (temp_file != new_file_path)){
+					io.remove(temp_file)
+					mainForm.process_show.text = "已删除Deleted"
 				}else{mainForm.process_show.text = "失败，已保留原件Failed&File reserved"}
 			}
 			mainForm.file_list.delete(1)

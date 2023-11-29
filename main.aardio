@@ -93,8 +93,8 @@ var tips_table = {
 	
 	"edit_t" = 'rimage程序运行时的线程数量，根据不同电脑的\n不同性能适当增加线程数量可以加速图片的处理。\n图片小于5M时不建议超过8。\n\nYou can increase the num of threads\naccording to the different performance of\nyour computer to accelerate processing.\nNo more than 8 when pic size is lower than\n5MB please.';
 	"edit_o_d" = '程序的输出目录，默认为程序所在的目录。\n双击文本框以进行更改。\n选择“原目录输出”时无效。\n\nThe dir for output, default is the dir that\nprocess start.\nDouble click text bar to change it.\nInvalid when selecting\n"PreservingFolderStructure".';
-	"edit_s" = '图片的输出后缀，如abc.png→abc_updated.png\n\nSuffix when output, example,\nabc.png→abc_updated.png';
-	"out_format" = '您可以在此处选择您希望输出的文件格式。\n不支持手动修改！\n\nYou can choose the file format you want here.\nNever change it by input!';
+	"edit_s" = '图片的输出后缀，如abc.png→abc_updated.png\n留空意味着以相同名字输出（可能会覆盖原文件）\n\nSuffix when output, example,\nabc.png→abc_updated.png\n\nLeaving blank means outputting with the same\nname (may overwrite the original file)';
+	"out_format" = '您可以在此处选择您希望输出的文件格式。\n严禁手动修改！\n\nYou can choose the file format you want here.\nNever change it by input!';
 	
 	"process_show" = '显示程序运行进度\n双击右键可快捷清除文件列表\nShow the process of Rimage.\nDouble click right button to clear file list.';
 	"start_cov" = '开始运行\n\nStart rimage';

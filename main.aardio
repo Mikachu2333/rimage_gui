@@ -20,7 +20,7 @@ edit_q={cls="edit";text="100";left=538;top=65;right=575;bottom=90;align="center"
 edit_s={cls="edit";text="_updated";left=96;top=308;right=186;bottom=333;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');z=18};
 edit_t={cls="edit";text="4";left=290;top=308;right=327;bottom=333;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=13};
 file_list={cls="listbox";left=7;top=31;right=414;bottom=295;acceptfiles=1;edge=1;font=LOGFONT(h=-14;name='微软雅黑');hscroll=1;items={};vscroll=1;z=20};
-out_format={cls="combobox";left=478;top=307;right=565;bottom=333;edge=1;font=LOGFONT(h=-16;name='微软雅黑');items={"jpg";"png";"oxipng";"webp";"jpegxl";"avif"};mode="dropdown";z=8};
+out_format={cls="combobox";left=478;top=307;right=565;bottom=333;edge=1;font=LOGFONT(h=-16;name='微软雅黑');items={"jpg";"png";"jxl";"webp";"avif"};mode="dropdown";z=8};
 preserve_structure={cls="checkbox";text="原目录输出 PreservingFolderStructure";left=258;top=346;right=575;bottom=371;bgcolor=65535;checked=1;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=23};
 process_show={cls="edit";left=7;top=408;right=461;bottom=430;autovscroll=false;edge=1;font=LOGFONT(h=-14;name='微软雅黑');readonly=1;z=14};
 resize_box={cls="groupbox";text="Resize_choose";left=419;top=147;right=583;bottom=294;edge=1;font=LOGFONT(name='微软雅黑');z=1};
@@ -44,21 +44,23 @@ Threads";left=207;top=299;right=285;bottom=340;align="center";font=LOGFONT(h=-16
 )
 /*}}*/
 
-var judge_size = (io.getSize(io._exedir + "rimage.exe") != 27413536)
-var judge_dll = not io.exist(io._exedir + "libwinpthread-1.dll")
-var judge_original = judge_size or judge_dll
-var judge_real_rimage = not io.exist(io._exedir + "realesrgan_rimage\rimage.exe")
-var judge_real_dll = not io.exist(io._exedir + "realesrgan_rimage\libwinpthread-1.dll")
-judge_real_sum = judge_real_rimage or judge_real_dll
+io.open()
+var judge_original = (io.getSize(io._exedir + "rimage.exe") == 17034240)
+judge_real = io.exist(io._exedir + "realesrgan_rimage\rimage.exe")
+if(judge_real){
+	if(io.getSize(io._exedir + "realesrgan_rimage\rimage.exe") == 17034240){
+		judge_real = true
+	}else{
+		judge_real = false
+	}
+}
+var judge_sum = judge_original or judge_real
 
-if(judge_original and judge_real_sum){
+if(!judge_sum){
 	thread.invoke(
 		function(){
 			io.remove(io._exedir + "rimage.exe")
 			string.save(io._exedir + "rimage.exe",$"\res\rimage.exe")
-			string.save(io._exedir + "libgcc_s_seh-1.dll",$"\res\libgcc_s_seh-1.dll")
-			string.save(io._exedir + "libstdc++-6.dll",$"\res\libstdc++-6.dll")
-			string.save(io._exedir + "libwinpthread-1.dll",$"\res\libwinpthread-1.dll")
 		})
 	win.msgbox('正在更新并释放到运行目录。\n“Rimage”软件为Apache2.0与MIT协议并存软件，\n本软件（仅GUI）为MIT许可证。\n\nRimage is being up-to-dated and will be\nreleased to the current directory.\nPlease note that "Rimage" software is\nunder either Apache2.0 and MIT license,\nthis software (GUI only) is under MIT license.',"Tip")
 }
@@ -210,6 +212,8 @@ mainForm.onDropFiles = function(files){
 		".jpg";
 		".jpeg";
 		".oxipng";
+		".jxl";
+		".jpegxl";
 		".webp";
 		".mozjpeg";
 		".avif";
@@ -233,7 +237,7 @@ mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
 				mainForm.file_list.clear()
 				count = 0
 			}
-			var temp1,temp2 = fsys.dlg.openEx("图片 Picture|*.png;*.jpg;*.jpeg;*.webp;*.avif;*.oxipng;*.mozjpeg","选择图片 Select IMGs",,mainForm.hwnd)
+			var temp1,temp2 = fsys.dlg.openEx("图片 Picture|*.png;*.jpg;*.jpeg;*.webp;*.avif;*.jxl;*.jpegxl;*.oxipng;*.mozjpeg","选择图片 Select IMGs",,mainForm.hwnd)
 			if(temp1 != null){
 				for(i,j in temp1){mainForm.file_list.add(j,1)}
 				mainForm.edit_o_d.text = """" + string.left(io.splitpath(mainForm.file_list.getItemText(1)).dir,-2,true) + """"
@@ -286,7 +290,9 @@ mainForm.start_cov.oncommand = function(id,event){
 		for(count=1;mainForm.file_list.count;1){
 			temp_file = mainForm.file_list.getItemText(1)
 			argvs = """" + string.replace(temp_file,"@\","\\") + """"
-			argvs = argvs + " -q " + quality
+			if(format != "jxl"){
+				argvs = argvs + " -q " + quality
+			}
 			argvs = argvs + " --codec " + format
 			if(p_struct){
 				argvs = argvs + " -r"
@@ -306,13 +312,13 @@ mainForm.start_cov.oncommand = function(id,event){
 				}
 			}
 			argvs = argvs + " -t " + thread_num
-			
+			io.print(argvs)
 
 			mainForm.process_show.text = mainForm.file_list.getItemText(1)
-			if(judge_real_sum){
-				rimage_path = """" + io._exedir + "rimage.exe"""
-			}else{
+			if(judge_real){
 				rimage_path = """" + io._exedir + "realesrgan_rimage\rimage.exe"""
+			}else{
+				rimage_path = """" + io._exedir + "rimage.exe"""
 			}
 			if(mainForm.show_hide.checked){
 				process.executeWait(rimage_path,argvs,,0/*_SW_HIDE*/)

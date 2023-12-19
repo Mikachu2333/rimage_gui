@@ -44,11 +44,11 @@ Threads";left=207;top=299;right=285;bottom=340;align="center";font=LOGFONT(h=-16
 )
 /*}}*/
 
-io.open()
-var judge_original = (io.getSize(io._exedir + "rimage.exe") == 17034240)
+var exe_size = 14414350
+var judge_original = (io.getSize(io._exedir + "rimage.exe") == exe_size)
 judge_real = io.exist(io._exedir + "realesrgan_rimage\rimage.exe")
 if(judge_real){
-	if(io.getSize(io._exedir + "realesrgan_rimage\rimage.exe") == 17034240){
+	if(io.getSize(io._exedir + "realesrgan_rimage\rimage.exe") == exe_size){
 		judge_real = true
 	}else{
 		judge_real = false
@@ -312,7 +312,6 @@ mainForm.start_cov.oncommand = function(id,event){
 				}
 			}
 			argvs = argvs + " -t " + thread_num
-			io.print(argvs)
 
 			mainForm.process_show.text = mainForm.file_list.getItemText(1)
 			if(judge_real){

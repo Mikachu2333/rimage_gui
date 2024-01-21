@@ -44,7 +44,7 @@ Threads";left=207;top=299;right=285;bottom=340;align="center";font=LOGFONT(h=-16
 )
 /*}}*/
 
-var exe_size = 14414350
+var exe_size = 14771214
 var judge_original = (io.getSize(io._exedir + "rimage.exe") == exe_size)
 judge_real = io.exist(io._exedir + "realesrgan_rimage\rimage.exe")
 if(judge_real){
@@ -208,15 +208,31 @@ mainForm.onDropFiles = function(files){
 		count = 0
 	}
 	var temp_list = {
-		".png";
-		".jpg";
-		".jpeg";
-		".oxipng";
-		".jxl";
-		".jpegxl";
-		".webp";
-		".mozjpeg";
-		".avif";
+		"avif";
+		"jpg";
+		"jpeg";
+		"mozjpeg";
+		"webp";
+		"png";
+		"jxl";
+		"jpegxl";
+		"oxipng";
+		"bmp";
+		"dds";
+		"exr";
+		"ff";
+		"farbfeld";
+		"gif";
+		"hdr";
+		"ico";
+		"pam";
+		"pbm";
+		"pgm";
+		"ppm";
+		"qoi";
+		"tga";
+		"tif";
+		"tiff";
 	}
 	if(!fsys.isDir(files[1])){
 		for(k,v in files){
@@ -237,7 +253,7 @@ mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
 				mainForm.file_list.clear()
 				count = 0
 			}
-			var temp1,temp2 = fsys.dlg.openEx("图片 Picture|*.png;*.jpg;*.jpeg;*.webp;*.avif;*.jxl;*.jpegxl;*.oxipng;*.mozjpeg","选择图片 Select IMGs",,mainForm.hwnd)
+			var temp1,temp2 = fsys.dlg.openEx("图片 Picture|*.avif;*.jpg;*.jpeg;*.mozjpeg;*.webp;*.png;*.jxl;*.jpegxl;*.oxipng;*.bmp;*.dds;*.exr;*.ff;*.farbfeld;*.gif;*.hdr;*.ico;*.pam;*.pbm;*.pgm;*.ppm;*.qoi;*.tga;*.tif;*.tiff;","选择图片 Select IMGs",,mainForm.hwnd)
 			if(temp1 != null){
 				for(i,j in temp1){mainForm.file_list.add(j,1)}
 				mainForm.edit_o_d.text = """" + string.left(io.splitpath(mainForm.file_list.getItemText(1)).dir,-2,true) + """"
@@ -312,7 +328,8 @@ mainForm.start_cov.oncommand = function(id,event){
 				}
 			}
 			argvs = argvs + " -t " + thread_num
-
+			io.print(argvs)
+			
 			mainForm.process_show.text = mainForm.file_list.getItemText(1)
 			if(judge_real){
 				rimage_path = """" + io._exedir + "realesrgan_rimage\rimage.exe"""

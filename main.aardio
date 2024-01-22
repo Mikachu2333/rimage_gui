@@ -268,7 +268,6 @@ mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
 	}
 }
 
-
 mainForm.start_cov.oncommand = function(id,event){
 	if(count != 0){
 		win.msgbox('请选择正确的图片\nPlease select Pics we support before execute.',"Warning",,mainForm.hwnd,2000)
@@ -277,6 +276,11 @@ mainForm.start_cov.oncommand = function(id,event){
 		mainForm.file_list.disabled = true
 		quality = mainForm.edit_o_q.text
 		format = mainForm.out_format.selText
+		format_exist = table.find({"jpg";"png";"jxl";"webp";"avif";},format)
+		if(format_exist == "" or format_exist == null){
+			format = "jpg"
+		}
+		io.print(format)
 		thread_num = mainForm.edit_t.text
 		if(mainForm.auto_delete.checked == true){auto_del = true}else{auto_del = false}
 		if((mainForm.edit_s.text == "") or (mainForm.edit_s.text == null)){
@@ -328,7 +332,7 @@ mainForm.start_cov.oncommand = function(id,event){
 				}
 			}
 			argvs = argvs + " -t " + thread_num
-			io.print(argvs)
+			//io.print(argvs)
 			
 			mainForm.process_show.text = mainForm.file_list.getItemText(1)
 			if(judge_real){

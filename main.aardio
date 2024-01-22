@@ -44,7 +44,7 @@ Threads";left=207;top=299;right=285;bottom=340;align="center";font=LOGFONT(h=-16
 )
 /*}}*/
 
-var exe_size = 14771214
+var exe_size = 14770702
 var judge_original = (io.getSize(io._exedir + "rimage.exe") == exe_size)
 judge_real = io.exist(io._exedir + "realesrgan_rimage\rimage.exe")
 if(judge_real){

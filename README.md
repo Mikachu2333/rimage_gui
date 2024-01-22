@@ -1,4 +1,4 @@
-# rimage_gui(rimage ver0.10.2 [re-compiled by Mika] )
+# rimage_gui(rimage ver0.10.3 [re-compiled by Mika] )
 一个Rimage的GUI版本，能够批量压缩图片且不影响观感。
 
 A GUI software use rimage to compress images batchly without affecting the look and feel. 
@@ -29,6 +29,30 @@ As you can see, the software encompasses most of the features of the original so
 **输出格式（Out-Format）【jpg为最常见且相对小（jpg is the most common format and relatively small）】**
 
 然后点击“开始”即可。And click the Start button.
+
+### 这是支持的文件类型
+
+| 文件格式支持情况               | 输入  | 输出   | 注释                       |
+| ------------------------------ | ----- | ------ | -------------------------- |
+| `avif`                         | √     | √      |                            |
+| **`jpg` / `jpeg` / `mozjpeg`** | √     | √      | **默认**，常见且体积小     |
+| `webp`                         | √     | √      |                            |
+| **`png`**                      | √     | √      |                            |
+| --------------------------     | ----- | ------ | -------------------------- |
+| `jxl` / `jpegxl`               | √     | √ \| X | `-q` 质量选项无效          |
+| `oxipng`                       | X     | √      |                            |
+| --------------------------     | ----- | ------ | -------------------------- |
+| `bmp`                          | √     | X      |                            |
+| `dds`                          | √     | X      |                            |
+| `exr`                          | √     | X      |                            |
+| `ff` / `farbfeld`              | √     | X      |                            |
+| `gif`                          | √     | X      |                            |
+| `hdr`                          | √     | X      |                            |
+| `ico`                          | √     | X      |                            |
+| `pam` / `pbm` / `pgm` / `ppm`  | √     | X      |                            |
+| `qoi`                          | √     | X      |                            |
+| `tga`                          | √     | X      |                            |
+| `tif` / `tiff`                 | √     | X      |                            |
 
 ## 提示（Tips）
 <img width="714" alt="06月26日17时59分45秒" src="https://github.com/Mikachu2333/rimage_gui/assets/63829496/c7e11470-088e-4057-9d2d-7ae7730df40e">

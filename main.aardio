@@ -208,31 +208,31 @@ mainForm.onDropFiles = function(files){
 		count = 0
 	}
 	var temp_list = {
-		"avif";
-		"jpg";
-		"jpeg";
-		"mozjpeg";
-		"webp";
-		"png";
-		"jxl";
-		"jpegxl";
-		"oxipng";
-		"bmp";
-		"dds";
-		"exr";
-		"ff";
-		"farbfeld";
-		"gif";
-		"hdr";
-		"ico";
-		"pam";
-		"pbm";
-		"pgm";
-		"ppm";
-		"qoi";
-		"tga";
-		"tif";
-		"tiff";
+		".avif";
+		".jpg";
+		".jpeg";
+		".mozjpeg";
+		".webp";
+		".png";
+		".jxl";
+		".jpegxl";
+		".oxipng";
+		".bmp";
+		".dds";
+		".exr";
+		".ff";
+		".farbfeld";
+		".gif";
+		".hdr";
+		".ico";
+		".pam";
+		".pbm";
+		".pgm";
+		".ppm";
+		".qoi";
+		".tga";
+		".tif";
+		".tiff";
 	}
 	if(!fsys.isDir(files[1])){
 		for(k,v in files){
@@ -253,7 +253,7 @@ mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
 				mainForm.file_list.clear()
 				count = 0
 			}
-			var temp1,temp2 = fsys.dlg.openEx("图片 Picture|*.avif;*.jpg;*.jpeg;*.mozjpeg;*.webp;*.png;*.jxl;*.jpegxl;*.oxipng;*.bmp;*.dds;*.exr;*.ff;*.farbfeld;*.gif;*.hdr;*.ico;*.pam;*.pbm;*.pgm;*.ppm;*.qoi;*.tga;*.tif;*.tiff;","选择图片 Select IMGs",,mainForm.hwnd)
+			var temp1,temp2 = fsys.dlg.openEx("图片 Picture|*.avif;*.jpg;*.jpeg;*.mozjpeg;*.webp;*.png;*.jxl;*.jpegxl;*.oxipng;*.bmp;*.dds;*.exr;*.ff;*.farbfeld;*.gif;*.hdr;*.ico;*.pam;*.pbm;*.pgm;*.ppm;*.qoi;*.tga;*.tif;*.tiff","选择图片 Select IMGs",,mainForm.hwnd)
 			if(temp1 != null){
 				for(i,j in temp1){mainForm.file_list.add(j,1)}
 				mainForm.edit_o_d.text = """" + string.left(io.splitpath(mainForm.file_list.getItemText(1)).dir,-2,true) + """"

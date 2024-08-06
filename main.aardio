@@ -5,24 +5,24 @@ import win.ui.tooltip
 /*DSG{{*/
 mainForm = win.form(cls="RIMG_GUI_FORM";text="rimage_gui";right=587;bottom=497;border="thin";max=false)
 mainForm.add(
-auto_delete={cls="checkbox";text="删除原件 DelOriginal";left=258;top=376;right=442;bottom=401;bgcolor=65535;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=21};
-backup_original={cls="checkbox";text="保存备份 BackupOriginal";left=7;top=376;right=221;bottom=401;bgcolor=65535;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=23};
+auto_delete={cls="checkbox";text="删除原件 DelOriginal";left=274;top=375;right=458;bottom=400;bgcolor=65535;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=21};
+backup_original={cls="checkbox";text="保存备份 BackupOriginal";left=30;top=376;right=244;bottom=401;bgcolor=65535;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=23};
 check_O_resize={cls="checkbox";text="不变 Original";left=423;top=174;right=528;bottom=193;checked=1;font=LOGFONT(h=-13;name='微软雅黑');z=24};
 combobox_resize_filter={cls="combobox";left=453;top=260;right=546;bottom=280;edge=1;font=LOGFONT(h=-14;name='微软雅黑');items={"lanczos3";"nearest";"box";"bilinear";"hamming";"catmull-rom";"mitchell"};mode="dropdown";z=25};
 edit_color_d={cls="edit";text="100";left=538;top=122;right=575;bottom=147;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=16};
 edit_color_q={cls="edit";text="100";left=538;top=73;right=574;bottom=98;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=11};
 edit_o_dir={cls="edit";left=155;top=466;right=461;bottom=491;autovscroll=false;disabled=1;edge=1;font=LOGFONT(h=-14;name='微软雅黑');readonly=1;z=9};
 edit_o_quality={cls="edit";text="85";left=538;top=23;right=575;bottom=48;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=6};
-edit_o_subfolder={cls="edit";left=389;top=406;right=476;bottom=431;autovscroll=false;disabled=1;edge=1;font=LOGFONT(h=-14;name='微软雅黑');z=27};
-edit_resize={cls="edit";text="Parms for resize";left=423;top=200;right=575;bottom=225;disabled=1;edge=1;font=LOGFONT(h=-16;name='微软雅黑');z=29};
+edit_o_subfolder={cls="edit";left=412;top=406;right=499;bottom=431;autovscroll=false;disabled=1;edge=1;font=LOGFONT(h=-14;name='微软雅黑');z=27};
+edit_resize={cls="edit";text="参数ResizeArgs";left=423;top=200;right=575;bottom=225;disabled=1;edge=1;font=LOGFONT(h=-16;name='微软雅黑');z=29};
 edit_suffix={cls="edit";text="_updated";left=96;top=308;right=186;bottom=333;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');z=18};
 edit_thread={cls="edit";text="4";left=290;top=308;right=327;bottom=333;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=13};
 file_list={cls="listbox";left=7;top=31;right=414;bottom=295;acceptfiles=1;edge=1;font=LOGFONT(h=-14;name='微软雅黑');hscroll=1;items={};vscroll=1;z=19};
 out_format={cls="combobox";left=478;top=307;right=565;bottom=333;edge=1;font=LOGFONT(h=-16;name='微软雅黑');items={"jpg";"png";"jxl";"webp";"avif"};mode="dropdown";z=8};
-preserve_structure={cls="checkbox";text="原目录输出 PreservingFolderStructure";left=258;top=346;right=575;bottom=371;bgcolor=65535;checked=1;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=22};
-process_show={cls="edit";left=7;top=436;right=461;bottom=461;autovscroll=false;edge=1;font=LOGFONT(h=-14;name='微软雅黑');readonly=1;z=14};
+preserve_structure={cls="checkbox";text="原目录输出 OutputInOriginalDir";left=274;top=346;right=542;bottom=371;bgcolor=65535;checked=1;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=22};
+process_show={cls="edit";left=7;top=436;right=461;bottom=461;autovscroll=false;edge=1;font=LOGFONT(h=-14;name='微软雅黑');multiline=1;readonly=1;vscroll=1;z=14};
 resize_box={cls="groupbox";text="Resize_choose";left=419;top=155;right=583;bottom=287;edge=1;font=LOGFONT(name='微软雅黑');z=1};
-show_hide={cls="checkbox";text="隐藏执行 HiddenExecute";left=7;top=346;right=220;bottom=371;bgcolor=65535;checked=1;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=20};
+show_hide={cls="checkbox";text="隐藏执行 HiddenExecute";left=30;top=346;right=243;bottom=371;bgcolor=65535;checked=1;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=20};
 start_cov={cls="button";text="开始 Start";left=468;top=436;right=581;bottom=491;border=1;default=1;font=LOGFONT(h=-17;name='微软雅黑');z=4};
 static_dithering={cls="static";text="颜色抖动
 Dithering";left=417;top=112;right=530;bottom=158;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=15};
@@ -39,7 +39,7 @@ static_suffix={cls="static";text="输出后缀
 Suffix";left=14;top=299;right=92;bottom=341;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=17};
 static_thread={cls="static";text="线程数
 Threads";left=207;top=299;right=285;bottom=340;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=12};
-subfolder_output={cls="checkbox";text="原路径子目录输出SubfolderOutputInOriginal";left=7;top=406;right=371;bottom=431;bgcolor=65535;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=28}
+subfolder_output={cls="checkbox";text="原路径子目录输出SubfolderOutputInOriginal";left=30;top=406;right=394;bottom=431;bgcolor=65535;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=28}
 )
 /*}}*/
 
@@ -81,7 +81,7 @@ var tips_table = {
 	"file_list" = '将要进行转换的文件列表，您可以通过双击\n左键以添加一个或多个，也可以在选中后通过单击右键将其删除。\n\nYou can add one or more imgs to the list by double-clicking\nthe left button of mouse, or delete them by right-clicking\nafter selection.';
 	"auto_delete" = '是否在转换完成后自动删除原始图片\n\nWhether to delete the Original Pic after cov.';
 	"show_hide" = '是否以隐藏窗口的方式运行rimage\n\nWhether to run Rimage silently.';
-	"preserve_structure" = '是否在输出文件时以原有目录结构输出\n\nWhether to output the file in the\noriginal directory structure.';
+	"preserve_structure" = '是否输出到原有目录\n\nWhether to output the file in the\noriginal directory.';
 	"backup_original" = '是否在原图片上加“.backup”后缀以备份\n\nWhether to appends ".backup" to\ninput file(s) names';
 	"subfolder_output" = '是否在图像原始路径下新建一个子文件夹并输出\n\nWhether to output the file in the\nsubfolder of original directory structure.';
 	"edit_o_subfolder" = '是否在图像原始路径下新建一个子文件夹并输出\n\nWhether to output the file in the\nsubfolder of original directory structure.';
@@ -90,7 +90,7 @@ var tips_table = {
 	"edit_color_q" = '量化是另一种意义上的图片质量，范围为1～100。\n如果您不确定或者不清楚改变它的结果，请将其\n保持原样以获得更小体积或者设置为100以获得\n更好的质量。\n\nQuantification is another form of image quality,\nranging from 1 to 100.\nIf you have no knowledge or unclear about it,\nplease just set it to 100 for better quality or\nkeep it for smaller size.';
 	"edit_color_d" = '颜色抖动决定了图像的输出色差情况，越高质量越\n好，图片越小本选项应当越大，范围为1～100。\n\nColor dithering determines the output quality\nof the image higher is better, especially the\nsize of pic is very small, ranging from 1～100';
 	"check_O_resize" = '改变图像大小与否\n\nResize Pic or not.';
-	"edit_resize" = '缩放参数，支持：\n@1.5（缩放至倍数）\n125%（缩放至百分比）\n1920x1080（固定值）\n720x_（指定长或宽，另一边按比例缩放）\n\nResize Parms to the Height you input, supprot:\n@1.5 (Resize image size by this multiplier)\n150% (Adjust image size by this percentage)\n100x100 (Resize image to these dimensions)\n200x_ (Adjust image dimensions while maintaining the aspect ratio based on the specified dimension)';
+	"edit_resize" = '缩放参数，支持：\n@1.5（缩放至倍数）\n125%（缩放至百分比）\n1920x1080（固定值）\n720x_（指定长或宽，另一边按比例缩放）\n\nResize Parms to the Height and Weight\nyou input, supprot:\n@1.5 (Resize image size by this multiplier)\n150% (Adjust image size by this percentage)\n100x100 (Resize image to these dimensions)\n200x_ (Adjust image dimensions while\nmaintaining the aspect ratio based on the\nspecified dimension)';
 	"combobox_resize_filter" = '使用不同算法进行缩放。\n\nFilter used for image resizing.';
 	
 	"edit_thread" = 'rimage程序运行时的线程数量，根据不同电脑的\n不同性能适当增加线程数量可以加速图片的处理。\n图片小于5M时不建议超过8。\n\nYou can increase the num of threads\naccording to the different performance of\nyour computer to accelerate processing.\nNo more than 8 when pic size is lower than\n5MB please.';
@@ -120,7 +120,7 @@ mainForm.check_O_resize.oncommand = function(id,event){
 		mainForm.edit_resize.text = ""
 		mainForm.edit_resize.disabled = false
 	}else {
-		mainForm.edit_resize.text = "Parms for resize"
+		mainForm.edit_resize.text = "参数ResizeArgs"
 		mainForm.edit_resize.disabled = true
 	}
 	//不能用disabledText=""
@@ -143,12 +143,12 @@ mainForm.auto_delete.oncommand = function(id,event){
 }
 
 mainForm.preserve_structure.oncommand = function(id,event){
-	if(mainForm.edit_o_dir.disabled == true){
+	if(mainForm.edit_o_dir.disabled){
 		mainForm.edit_o_dir.disabled = false
 	}else{
 		mainForm.edit_o_dir.disabled = true
 	}
-	if(mainForm.subfolder_output.disabled == false){
+	if(!mainForm.subfolder_output.disabled){
 		mainForm.subfolder_output.disabled = true
 		mainForm.subfolder_output.checked = false
 		mainForm.edit_o_subfolder.disabled = true
@@ -211,23 +211,8 @@ mainForm.onDropFiles = function(files){
 		".mozjpeg";
 		".webp";
 		".png";
-		".jxl";
-		".jpegxl";
 		".oxipng";
 		".bmp";
-		".dds";
-		".exr";
-		".ff";
-		".farbfeld";
-		".gif";
-		".hdr";
-		".ico";
-		".pam";
-		".pbm";
-		".pgm";
-		".ppm";
-		".qoi";
-		".tga";
 		".tif";
 		".tiff";
 	}
@@ -250,7 +235,7 @@ mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
 				mainForm.file_list.clear()
 				count = 0
 			}
-			var temp1,temp2 = fsys.dlg.openEx("图片 Picture|*.avif;*.jpg;*.jpeg;*.mozjpeg;*.webp;*.png;*.jxl;*.jpegxl;*.oxipng;*.bmp;*.dds;*.exr;*.ff;*.farbfeld;*.gif;*.hdr;*.ico;*.pam;*.pbm;*.pgm;*.ppm;*.qoi;*.tga;*.tif;*.tiff","选择图片 Select IMGs",,mainForm.hwnd)
+			var temp1,temp2 = fsys.dlg.openEx("图片 Picture|*.avif;*.jpg;*.jpeg;*.mozjpeg;*.webp;*.png;*.oxipng;*.bmp;*.tif;*.tiff","选择图片 Select IMGs",,mainForm.hwnd)
 			if(temp1 != null){
 				for(i,j in temp1){mainForm.file_list.add(j,1)}
 				mainForm.edit_o_dir.text = """" + string.left(io.splitpath(mainForm.file_list.getItemText(1)).dir,-2,true) + """"
@@ -282,7 +267,7 @@ mainForm.start_cov.oncommand = function(id,event){
 		}
 		
 		thread_num = mainForm.edit_thread.text
-		if(mainForm.auto_delete.checked == true){auto_del = true}else{auto_del = false}
+		if(mainForm.auto_delete.checked){auto_del = true}else{auto_del = false}
 		if(mainForm.edit_suffix.text == ""){
 			suf_null = true
 		}else{
@@ -290,8 +275,8 @@ mainForm.start_cov.oncommand = function(id,event){
 			suf_text = mainForm.edit_suffix.text
 		}
 		if(mainForm.backup_original.checked == true){back_up = true}else{back_up = false}
-		if(mainForm.preserve_structure.checked == true){p_struct = true}
-		if(mainForm.edit_o_subfolder.text != ""){
+		if(mainForm.preserve_structure.checked == true){p_struct = true}else{p_struct = false}
+		if((mainForm.edit_o_subfolder.text != "") and (mainForm.edit_o_subfolder.text != null)){
 			sub_folder_name = tostring(mainForm.edit_o_subfolder.text)
 			sub_folder_name = string.replace(sub_folder_name,`[\<\>\:\"\/\\\|\?\*]`,{
 				["<"] = "＜";
@@ -330,12 +315,11 @@ mainForm.start_cov.oncommand = function(id,event){
 			if(format != "jxl"){
 				argvs = argvs + " -q " + quality
 			}
-			if(p_struct and sub_folder_name == false){
-				argvs = argvs + " -r"
-			}elseif(sub_folder_name){
+			
+			if(sub_folder_name != ""){
 				argvs = argvs + " -d """ + temp_file_path.dir + sub_folder_name + """"
 			}else{
-				argvs = argvs + " -d """ + out_dir + """"
+				argvs = argvs + " -d " + out_dir
 			}
 			if(!suf_null){argvs = argvs + " --suffix """ + suf_text + """"}
 			if(back_up){argvs = argvs + " --backup"}
@@ -359,6 +343,8 @@ mainForm.start_cov.oncommand = function(id,event){
 			//io.print(argvs)//debug
 			
 			mainForm.process_show.text = mainForm.file_list.getItemText(1)
+			mainForm.process_show.log(argvs,'\r\n')
+			
 			if(judge_real){
 				rimage_path = """" + io._exedir + "realesrgan_rimage\rimage.exe"""
 			}else{
@@ -371,32 +357,32 @@ mainForm.start_cov.oncommand = function(id,event){
 			}
 			
 			if(auto_del){
-				if(p_struct and sub_folder_name == false){
-					new_file_dir = temp_file_path.dir
-				}elseif(sub_folder_name){
+				if(sub_folder_name != ""){
 					new_file_dir = temp_file_path.dir + sub_folder_name + "\"
 				}else{
-					new_file_dir = string.slice(out_dir,2,-2,true)
+					new_file_dir = string.slice(out_dir,2,-2,true) + "\"
 				}
 				//io.print(new_file_dir)
+				if(format == "moz"){format = "jpg"}
 				if(suf_null){
 					new_file_path = new_file_dir + temp_file_path.name + "." + format
 				}else{
 					new_file_path = new_file_dir + temp_file_path.name + suf_text + "." + format
 				}
-				if((io.exist(new_file_path)) and (temp_file != new_file_path)){
+				if(((io.exist(new_file_path)) and (temp_file != new_file_path)) or back_up){
 					io.remove(temp_file)
-					mainForm.process_show.text = "已删除Deleted"
-				}else{mainForm.process_show.text = "失败，已保留原件Failed&File reserved"}
+					mainForm.process_show.log("已删除Deleted",'\r\n')
+				}else{mainForm.process_show.log("失败，已保留原件Failed&File reserved",'\r\n')}
 			}
 			
-			mainForm.process_show.text = "成功Success  " + temp_file_path.name
+			mainForm.process_show.log("完成 Finished  " + temp_file_path.name)
 			mainForm.file_list.delete(1)
 		}
 		mainForm.file_list.disabled = false
 		win.setForeground(mainForm.hwnd)
-		win.msgbox("转换完毕！Complete!","成功Success",,mainForm.hwnd,10000)
-		mainForm.process_show.text = "(清空Clear) 显示Rimage运行情况 Show the process of Rimage"
+		win.msgbox("运行结束！Complete!","完成！Finished!",,mainForm.hwnd,10000)
+		win.delay(5000)
+		mainForm.process_show.text = "(清空Clear) 显示Rimage运行情况 Show the status of Rimage"
 	}
 }
 

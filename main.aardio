@@ -1,14 +1,15 @@
 import fsys.dlg
 import process
+import preg
 import win.ui
 import win.ui.tooltip
 /*DSG{{*/
 mainForm = win.form(cls="RIMG_GUI_FORM";text="rimage_gui";right=587;bottom=497;border="thin";max=false)
 mainForm.add(
-auto_delete={cls="checkbox";text="删除原件 DelOriginal";left=274;top=375;right=458;bottom=400;bgcolor=65535;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=21};
-backup_original={cls="checkbox";text="保存备份 BackupOriginal";left=30;top=376;right=244;bottom=401;bgcolor=65535;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=23};
+auto_delete={cls="checkbox";text="删除原件 DelOriginal";left=274;top=375;right=458;bottom=400;bgcolor=0x00FFFF;color=0x0000FF;font=LOGFONT(h=-16;name='微软雅黑');z=21};
+backup_original={cls="checkbox";text="保存备份 BackupOriginal";left=30;top=376;right=244;bottom=401;bgcolor=0x00FFFF;color=0x0000FF;font=LOGFONT(h=-16;name='微软雅黑');z=23};
 check_O_resize={cls="checkbox";text="不变 Original";left=423;top=174;right=528;bottom=193;checked=1;font=LOGFONT(h=-13;name='微软雅黑');z=24};
-combobox_resize_filter={cls="combobox";left=453;top=260;right=546;bottom=280;edge=1;font=LOGFONT(h=-14;name='微软雅黑');items={"lanczos3";"nearest";"box";"bilinear";"hamming";"catmull-rom";"mitchell"};mode="dropdown";z=25};
+combobox_resize_filter={cls="combobox";left=453;top=260;right=546;bottom=280;edge=1;font=LOGFONT(h=-14;name='微软雅黑');items={"lanczos3","nearest","box","bilinear","hamming","catmull-rom","mitchell"};mode="dropdown";z=25};
 edit_color_d={cls="edit";text="100";left=538;top=122;right=575;bottom=147;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=16};
 edit_color_q={cls="edit";text="100";left=538;top=73;right=574;bottom=98;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=11};
 edit_o_dir={cls="edit";left=155;top=466;right=461;bottom=491;autovscroll=false;disabled=1;edge=1;font=LOGFONT(h=-14;name='微软雅黑');readonly=1;z=9};
@@ -18,11 +19,11 @@ edit_resize={cls="edit";text="参数ResizeArgs";left=423;top=200;right=575;botto
 edit_suffix={cls="edit";text="_updated";left=96;top=308;right=186;bottom=333;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');z=18};
 edit_thread={cls="edit";text="4";left=290;top=308;right=327;bottom=333;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=13};
 file_list={cls="listbox";left=7;top=31;right=414;bottom=295;acceptfiles=1;edge=1;font=LOGFONT(h=-14;name='微软雅黑');hscroll=1;items={};vscroll=1;z=19};
-out_format={cls="combobox";left=478;top=307;right=565;bottom=333;edge=1;font=LOGFONT(h=-16;name='微软雅黑');items={"jpg";"png";"jxl";"webp";"avif"};mode="dropdown";z=8};
-preserve_structure={cls="checkbox";text="原目录输出 OutputInOriginalDir";left=274;top=346;right=542;bottom=371;bgcolor=65535;checked=1;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=22};
+out_format={cls="combobox";left=478;top=307;right=565;bottom=333;edge=1;font=LOGFONT(h=-16;name='微软雅黑');items={"jpg","png","jxl","webp","avif"};mode="dropdown";z=8};
+preserve_structure={cls="checkbox";text="原目录输出 OutputInOriginalDir";left=274;top=346;right=542;bottom=371;bgcolor=0x00FFFF;checked=1;color=0x0000FF;font=LOGFONT(h=-16;name='微软雅黑');z=22};
 process_show={cls="edit";left=7;top=436;right=461;bottom=461;autovscroll=false;edge=1;font=LOGFONT(h=-14;name='微软雅黑');multiline=1;readonly=1;vscroll=1;z=14};
 resize_box={cls="groupbox";text="Resize_choose";left=419;top=155;right=583;bottom=287;edge=1;font=LOGFONT(name='微软雅黑');z=1};
-show_hide={cls="checkbox";text="隐藏执行 HiddenExecute";left=30;top=346;right=243;bottom=371;bgcolor=65535;checked=1;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=20};
+show_hide={cls="checkbox";text="隐藏执行 HiddenExecute";left=30;top=346;right=243;bottom=371;bgcolor=0x00FFFF;checked=1;color=0x0000FF;font=LOGFONT(h=-16;name='微软雅黑');z=20};
 start_cov={cls="button";text="开始 Start";left=468;top=436;right=581;bottom=491;border=1;default=1;font=LOGFONT(h=-17;name='微软雅黑');z=4};
 static_dithering={cls="static";text="颜色抖动
 Dithering";left=417;top=112;right=530;bottom=158;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=15};
@@ -39,7 +40,7 @@ static_suffix={cls="static";text="输出后缀
 Suffix";left=14;top=299;right=92;bottom=341;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=17};
 static_thread={cls="static";text="线程数
 Threads";left=207;top=299;right=285;bottom=340;align="center";font=LOGFONT(h=-16;name='微软雅黑');notify=1;transparent=1;z=12};
-subfolder_output={cls="checkbox";text="原路径子目录输出SubfolderOutputInOriginal";left=30;top=406;right=394;bottom=431;bgcolor=65535;color=255;font=LOGFONT(h=-16;name='微软雅黑');z=28}
+subfolder_output={cls="checkbox";text="原路径子目录输出SubfolderOutputInOriginal";left=30;top=406;right=394;bottom=431;bgcolor=0x00FFFF;color=0x0000FF;font=LOGFONT(h=-16;name='微软雅黑');z=28}
 )
 /*}}*/
 
@@ -199,35 +200,69 @@ mainForm.edit_o_dir.text = """" + string.left(io._exedir,-2,true) + """"
 
 
 var count = null
-mainForm.onDropFiles = function(files){
+var format_reg = preg("(.avif|.jpg|.jpeg|.mozjpeg|.webp|.png|.oxipng|.bmp|.tif|.tiff)")
+var format_reg_dumplicate = preg("(.avif|.jpg|.jpeg|.mozjpeg|.webp|.png|.oxipng|.bmp|.tif|.tiff){2,}")
+
+var addObjToFileList = function (path) {
 	if(count == null){
-		mainForm.file_list.clear()
-		count = 0
+        mainForm.file_list.clear()
+        count = 0
+    }
+	var ab = mainForm.file_list.add(path);
+	if (count == 0) {
+		mainForm.edit_o_dir.text = """" + string.left(io.splitpath(path).dir,-2,true) + """"
 	}
-	var temp_list = {
-		".avif";
-		".jpg";
-		".jpeg";
-		".mozjpeg";
-		".webp";
-		".png";
-		".oxipng";
-		".bmp";
-		".tif";
-		".tiff";
-	}
-	if(!fsys.isDir(files[1])){
-		for(k,v in files){
-			temp_ext = io.splitpath(v).ext
-			for m,n in temp_list{
-				if(n == temp_ext){
-					mainForm.file_list.add(v)
-					mainForm.edit_o_dir.text = """" + string.left(io.splitpath(mainForm.file_list.getItemText(1)).dir,-2,true) + """"
-				}
-			}
-		}
-	}else{win.msgbox('请勿使用文件夹\nDir is not supported.',"Warning",,mainForm.hwnd,2000)}
+	count++;
 }
+// 添加递归扫描文件夹的函数
+var scanFolder = function(folderPath) {
+
+  fsys.enum(folderPath, "*.*",
+  	function (dir, filename, fullpath, findData) {
+  		if (filename) {
+			mainForm.process_show.text = "发现文件：" + fullpath 
+			// io.print("发现文件：" + filename, "完整路径：" + fullpath) /*可使用 return false退出枚举文件过程*/
+			// 处理文件
+            var ext = io.splitpath(fullpath).ext;
+			if (format_reg.test(ext)){
+				addObjToFileList(fullpath);
+			}
+  		} else {
+  			// io.print("发现目录：" + dir)
+  		}
+  	},
+  	function (dirPath, dirName) {
+  		/*处理每个子目录前首先调用此函数,返回false跳过该目录*/
+  		return true;
+  	}
+  );
+}
+
+
+mainForm.onDropFiles = function(files){
+    if(count == null){
+        mainForm.file_list.clear()
+        count = 0
+    }
+    
+    for(k,v in files) {
+        if(fsys.isDir(v)) {
+            // 处理文件夹
+            scanFolder(v + "\");
+        } else {
+            // 处理单个文件
+            temp_ext = io.splitpath(v).ext
+			if (format_reg.test(temp_ext)){
+				addObjToFileList(v);
+			}
+        }
+    }
+    
+    if(count == 0) {
+        win.msgbox('未找到支持的图片文件\nNo supported image files found.',"Warning",,mainForm.hwnd,2000)
+    }
+}
+
 mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
 	select(message){
 		case 0x203/*_WM_LBUTTONDBLCLK*/{
@@ -252,7 +287,7 @@ mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
 
 //io.open()//test
 mainForm.start_cov.oncommand = function(id,event){
-	if(count != 0){
+	if(count== null || count == 0){
 		win.msgbox('请选择正确的图片\nPlease select Pics we support before execute.',"Warning",,mainForm.hwnd,2000)
 	}else{
 		mainForm.process_show.text = "开始运行 Rimage start"
@@ -315,11 +350,14 @@ mainForm.start_cov.oncommand = function(id,event){
 			if(format != "jxl"){
 				argvs = argvs + " -q " + quality
 			}
+			if (mainForm.edit_o_dir.disabled){
+				out_dir = io.splitpath(temp_file).dir
+			}
 			
 			if(sub_folder_name != ""){
 				argvs = argvs + " -d """ + temp_file_path.dir + sub_folder_name + """"
 			}else{
-				argvs = argvs + " -d " + out_dir
+				argvs = argvs + " -d """ + out_dir + """"
 			}
 			if(!suf_null){argvs = argvs + " --suffix """ + suf_text + """"}
 			if(back_up){argvs = argvs + " --backup"}
@@ -344,7 +382,8 @@ mainForm.start_cov.oncommand = function(id,event){
 			
 			mainForm.process_show.text = mainForm.file_list.getItemText(1)
 			mainForm.process_show.log(argvs,'\r\n')
-			
+			//win.msgbox(""+argvs,"",,mainForm.hwnd,1000000)//debug
+		
 			if(judge_real){
 				rimage_path = """" + io._exedir + "realesrgan_rimage\rimage.exe"""
 			}else{
@@ -360,7 +399,11 @@ mainForm.start_cov.oncommand = function(id,event){
 				if(sub_folder_name != ""){
 					new_file_dir = temp_file_path.dir + sub_folder_name + "\"
 				}else{
-					new_file_dir = string.slice(out_dir,2,-2,true) + "\"
+					if (mainForm.edit_o_dir.disabled){
+						new_file_dir = out_dir
+					}else{
+						new_file_dir = string.slice(out_dir,2,-2,true) + "\"
+					}
 				}
 				//io.print(new_file_dir)
 				if(format == "moz"){format = "jpg"}
@@ -369,6 +412,12 @@ mainForm.start_cov.oncommand = function(id,event){
 				}else{
 					new_file_path = new_file_dir + temp_file_path.name + suf_text + "." + format
 				}
+				// 处理rimage的一个future : .jpg.jpg格式会丢失-s参数 并且 只留下.jpg
+				// win.msgbox(""+temp_file_path.name,"",,mainForm.hwnd,1000000)//debug
+				if (format_reg_dumplicate.test(temp_file)){
+					new_file_path = new_file_dir + format_reg_dumplicate.replace(temp_file_path.name + "." + format,"") + "." + format
+				}
+				
 				if(((io.exist(new_file_path)) and (temp_file != new_file_path)) or back_up){
 					io.remove(temp_file)
 					mainForm.process_show.log("已删除Deleted",'\r\n')
@@ -379,6 +428,7 @@ mainForm.start_cov.oncommand = function(id,event){
 			mainForm.file_list.delete(1)
 		}
 		mainForm.file_list.disabled = false
+		count = 0
 		win.setForeground(mainForm.hwnd)
 		win.msgbox("运行结束！Complete!","完成！Finished!",,mainForm.hwnd,10000)
 		win.delay(5000)

@@ -1,17 +1,20 @@
-# rimage_gui(rimage v0.11.0-next.2 [re-compiled by Mika] )
+# rimage_gui(rimage v0.12.1 [re-compiled by Mika] )
+
 一个Rimage的GUI版本，能够批量压缩图片且不影响观感。
 
-A GUI software use rimage to compress images batchly without affecting the look and feel. 
+A GUI software use rimage to compress images batchly without affecting the look and feel.
 
 ## 感谢（Thanks）
+
 [rimage](https://github.com/SalOne22/rimage)和（and）[小众论坛](https://www.appinn.com/rimage-gui/)！（appinn.com is a Chinese-only Website）
 
 ## 禁止
+
 本项目及本项目的衍生项目禁止在吾爱破解发布，因其内嵌不符合吾爱版规的“广告”。
 
 ## 使用说明（Useage）
-![图片](https://github.com/user-attachments/assets/94c34d80-31bd-4757-a691-2f74a8cd769b)
 
+![图片](https://github.com/user-attachments/assets/94c34d80-31bd-4757-a691-2f74a8cd769b)
 
 如你所见，软件囊括了大部分原软件的功能，一般情况下，你只需要选择
 
@@ -44,6 +47,7 @@ As you can see, the software encompasses most of the features of the original so
 | `tif` / `tiff`                     | √             | X              |                                                                                               |
 
 ## 提示（Tips）
+
 <img width="714" alt="06月26日17时59分45秒" src="https://github.com/Mikachu2333/rimage_gui/assets/63829496/c7e11470-088e-4057-9d2d-7ae7730df40e">
 
 你可以通过鼠标悬停或者点击你想要了解的内容来查看解释。
@@ -55,6 +59,7 @@ You can view the explanation by hovering or clicking on the content you want to 
 All the available options are explained in detail.
 
 ## 效果图（Pic After Use）
+
 ![图片](https://github.com/Mikachu2333/rimage_gui/assets/63829496/dead98b0-63b7-4f1b-a0d2-fe359147d5bc)
 
 ## Star

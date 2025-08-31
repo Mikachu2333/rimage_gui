@@ -406,16 +406,17 @@ mainForm.start_cov.oncommand = function(id,event){
                     }
                 }
                 //io.print(new_file_dir)
-                if(format == "moz"){format = "jpg"}
+                var formatStr = format
+                if(formatStr == "moz"){formatStr = "jpg"}
                 if(suf_null){
-                    new_file_path = new_file_dir + temp_file_path.name + "." + format
+                    new_file_path = new_file_dir + temp_file_path.name + "." + formatStr
                 }else{
-                    new_file_path = new_file_dir + temp_file_path.name + suf_text + "." + format
+                    new_file_path = new_file_dir + temp_file_path.name + suf_text + "." + formatStr
                 }
                 // 处理rimage的一个future : .jpg.jpg格式会丢失-s参数 并且 只留下.jpg
                 // win.msgbox(""+temp_file_path.name,"",,mainForm.hwnd,1000000)//debug
                 if (format_reg_dumplicate.test(temp_file)){
-                    new_file_path = new_file_dir + format_reg_dumplicate.replace(temp_file_path.name + "." + format,"") + "." + format
+                    new_file_path = new_file_dir + format_reg_dumplicate.replace(temp_file_path.name + "." + formatStr,"") + "." + formatStr
                 }
                 
                 if(((io.exist(new_file_path)) and (temp_file != new_file_path)) or back_up){

@@ -44,7 +44,7 @@ subfolder_output={cls="checkbox";text="原路径子目录输出SubfolderOutputIn
 )
 /*}}*/
 
-var exe_size = 21199360
+var exe_size = 21768192
 var judge_original = (io.getSize(io._exedir + "rimage.exe") == exe_size)
 judge_real = io.exist(io._exedir + "realesrgan_rimage\rimage.exe")
 if(judge_real){

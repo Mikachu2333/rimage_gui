@@ -1,4 +1,4 @@
-# rimage_gui(rimage v0.12.1 [re-compiled by Mika] )
+# rimage_gui(rimage v0.12.2 [re-compiled by Mika] )
 
 一个Rimage的GUI版本，能够批量压缩图片且不影响观感。
 
@@ -6,7 +6,7 @@ A GUI software use rimage to compress images batchly without affecting the look 
 
 ## 感谢（Thanks）
 
-[rimage](https://github.com/SalOne22/rimage)和（and）[小众论坛](https://www.appinn.com/rimage-gui/)！（appinn.com is a Chinese-only Website）
+[rimage](https://github.com/SalOne22/rimage)和（and）[小众论坛](https://www.appinn.com/rimage-gui/)！（`appinn.com` is a Chinese-only Website）
 
 ## 禁止
 

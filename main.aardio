@@ -16,7 +16,7 @@ edit_o_dir={cls="edit";left=155;top=466;right=461;bottom=491;autovscroll=false;d
 edit_o_quality={cls="edit";text="85";left=538;top=23;right=575;bottom=48;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=6};
 edit_o_subfolder={cls="edit";left=412;top=406;right=499;bottom=431;autovscroll=false;disabled=1;edge=1;font=LOGFONT(h=-14;name='微软雅黑');z=27};
 edit_resize={cls="edit";text="参数ResizeArgs";left=423;top=200;right=575;bottom=225;disabled=1;edge=1;font=LOGFONT(h=-16;name='微软雅黑');z=29};
-edit_suffix={cls="edit";text="_updated";left=96;top=308;right=186;bottom=333;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');z=18};
+edit_suffix={cls="edit";text="updated";left=96;top=308;right=186;bottom=333;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');z=18};
 edit_thread={cls="edit";text="4";left=290;top=308;right=327;bottom=333;align="center";edge=1;font=LOGFONT(h=-16;name='微软雅黑');num=1;z=13};
 file_list={cls="listbox";left=7;top=31;right=414;bottom=295;acceptfiles=1;edge=1;font=LOGFONT(h=-14;name='微软雅黑');hscroll=1;items={};vscroll=1;z=19};
 out_format={cls="combobox";left=478;top=307;right=565;bottom=333;edge=1;font=LOGFONT(h=-16;name='微软雅黑');items={"jpg","png","jxl","webp","avif"};mode="dropdown";z=8};
@@ -44,7 +44,7 @@ subfolder_output={cls="checkbox";text="原路径子目录输出SubfolderOutputIn
 )
 /*}}*/
 
-var exe_size = 21768192
+var exe_size = 26492928
 var judge_original = (io.getSize(io._exedir + "rimage.exe") == exe_size)
 judge_real = io.exist(io._exedir + "realesrgan_rimage\rimage.exe")
 if(judge_real){

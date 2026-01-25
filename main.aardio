@@ -44,7 +44,7 @@ subfolder_output={cls="checkbox";text="原路径子目录输出SubfolderOutputIn
 )
 /*}}*/
 
-var exe_size = 26492928
+var exe_size = 27078656
 var judge_original = (io.getSize(io._exedir + "rimage.exe") == exe_size)
 judge_real = io.exist(io._exedir + "realesrgan_rimage\rimage.exe")
 if(judge_real){
@@ -208,10 +208,10 @@ var addObjToFileList = function (path) {
         mainForm.file_list.clear()
         count = 0
     }
-    var ab = mainForm.file_list.add(path);
-    if (count == 0) {
-        mainForm.edit_o_dir.text = """" + string.left(io.splitpath(path).dir,-2,true) + """"
-    }
+
+    mainForm.file_list.add(path, 1);
+    mainForm.edit_o_dir.text = """" + string.left(io.splitpath(path).dir,-2,true) + """"
+
     count++;
 }
 // 添加递归扫描文件夹的函数
@@ -272,7 +272,7 @@ mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
             }
             var temp1,temp2 = fsys.dlg.openEx("图片 Picture|*.avif;*.jpg;*.jpeg;*.mozjpeg;*.webp;*.png;*.oxipng;*.bmp;*.tif;*.tiff","选择图片 Select IMGs",,mainForm.hwnd)
             if(temp1 != null){
-                for(i,j in temp1){mainForm.file_list.add(j,1)}
+                for(i,j in temp1){addObjToFileList(j)}
                 mainForm.edit_o_dir.text = """" + string.left(io.splitpath(mainForm.file_list.getItemText(1)).dir,-2,true) + """"
             }else{
                 win.msgbox('请选择正确的图片\nPlease select Pics we support.',"Warning",,mainForm.hwnd,2000)
@@ -381,7 +381,7 @@ mainForm.start_cov.oncommand = function(id,event){
             //io.print(argvs)//debug
             
             mainForm.process_show.text = mainForm.file_list.getItemText(1)
-            mainForm.process_show.log(argvs,'\r\n')
+            mainForm.process_show.log('\r\n', "rimage ", argvs, '\r\n')
             //win.msgbox(""+argvs,"",,mainForm.hwnd,1000000)//debug
         
             if(judge_real){

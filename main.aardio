@@ -405,16 +405,13 @@ mainForm.start_cov.oncommand = function(id,event){
                         new_file_dir = string.slice(out_dir,2,-2,true) + "\"
                     }
                 }
-                //io.print(new_file_dir)
                 var formatStr = format
                 if(formatStr == "moz"){formatStr = "jpg"}
                 if(suf_null){
                     new_file_path = new_file_dir + temp_file_path.name + "." + formatStr
                 }else{
-                    new_file_path = new_file_dir + temp_file_path.name + suf_text + "." + formatStr
+                    new_file_path = new_file_dir + temp_file_path.name + "@" +suf_text + "." + formatStr
                 }
-                // 处理rimage的一个future : .jpg.jpg格式会丢失-s参数 并且 只留下.jpg
-                // win.msgbox(""+temp_file_path.name,"",,mainForm.hwnd,1000000)//debug
                 if (format_reg_dumplicate.test(temp_file)){
                     new_file_path = new_file_dir + format_reg_dumplicate.replace(temp_file_path.name + "." + formatStr,"") + "." + formatStr
                 }

@@ -46,8 +46,8 @@ subfolder_output={cls="checkbox";text="原路径子目录输出SubfolderOutputIn
 
 ..DBG = false
 if(DBG){
-	import console;
-	console.open()
+    import console;
+    console.open()
 }
 
 var exe_size = 25241600
@@ -380,11 +380,11 @@ mainForm.start_cov.oncommand = function(id,event){
             argvs = argvs + " -t " + thread_num
             
             //files
-            argvs = argvs +  " """ + temp_file + """"
+            argvs = argvs + " """ + temp_file + """"
             
             argvs = string.replace(argvs,"@\","\\")
             if(DBG){
-            	console.dump(argvs)
+                console.dump(argvs)
             }
             
             mainForm.process_show.text = mainForm.file_list.getItemText(1)
@@ -441,13 +441,13 @@ mainForm.start_cov.oncommand = function(id,event){
 }
 
 mainForm.out_format.onOk = function(){ 
-	if(string.find(".png.jxl",string.lower(mainForm.out_format.selText))){
-		mainForm.edit_o_quality.disabled = true
-		mainForm.edit_o_quality.text = ""
-	}else{
-		mainForm.edit_o_quality.disabled = false
-		mainForm.edit_o_quality.text = "85"
-	}
+    if(string.find(".png.jxl",string.lower(mainForm.out_format.selText))){
+        mainForm.edit_o_quality.disabled = true
+        mainForm.edit_o_quality.text = ""
+    }else{
+        mainForm.edit_o_quality.disabled = false
+        mainForm.edit_o_quality.text = "85"
+    }
 }
 
 return win.loopMessage()

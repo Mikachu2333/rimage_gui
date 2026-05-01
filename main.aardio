@@ -44,7 +44,13 @@ subfolder_output={cls="checkbox";text="原路径子目录输出SubfolderOutputIn
 )
 /*}}*/
 
-var exe_size = 27078656
+..DBG = false
+if(DBG){
+	import console;
+	console.open()
+}
+
+var exe_size = 25241600
 var judge_original = (io.getSize(io._exedir + "rimage.exe") == exe_size)
 judge_real = io.exist(io._exedir + "realesrgan_rimage\rimage.exe")
 if(judge_real){
@@ -285,7 +291,6 @@ mainForm.file_list.wndproc = function(hwnd,message,wParam,lParam){
     }
 }
 
-//io.open()//test
 mainForm.start_cov.oncommand = function(id,event){
     if(count== null || count == 0){
         win.msgbox('请选择正确的图片\nPlease select Pics we support before execute.',"Warning",,mainForm.hwnd,2000)
@@ -347,7 +352,7 @@ mainForm.start_cov.oncommand = function(id,event){
             temp_file = mainForm.file_list.getItemText(1)
             temp_file_path = io.splitpath(temp_file)
             argvs = format
-            if(format != "jxl"){
+            if(format != "jxl" and format != "png"){
                 argvs = argvs + " -q " + quality
             }
             if (mainForm.edit_o_dir.disabled){
@@ -378,11 +383,12 @@ mainForm.start_cov.oncommand = function(id,event){
             argvs = argvs +  " """ + temp_file + """"
             
             argvs = string.replace(argvs,"@\","\\")
-            //io.print(argvs)//debug
+            if(DBG){
+            	console.dump(argvs)
+            }
             
             mainForm.process_show.text = mainForm.file_list.getItemText(1)
             mainForm.process_show.log('\r\n', "rimage ", argvs, '\r\n')
-            //win.msgbox(""+argvs,"",,mainForm.hwnd,1000000)//debug
         
             if(judge_real){
                 rimage_path = """" + io._exedir + "realesrgan_rimage\rimage.exe"""

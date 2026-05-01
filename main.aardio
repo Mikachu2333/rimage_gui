@@ -440,4 +440,14 @@ mainForm.start_cov.oncommand = function(id,event){
     }
 }
 
+mainForm.out_format.onOk = function(){ 
+	if(string.find(".png.jxl",string.lower(mainForm.out_format.selText))){
+		mainForm.edit_o_quality.disabled = true
+		mainForm.edit_o_quality.text = ""
+	}else{
+		mainForm.edit_o_quality.disabled = false
+		mainForm.edit_o_quality.text = "85"
+	}
+}
+
 return win.loopMessage()

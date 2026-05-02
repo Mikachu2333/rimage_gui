@@ -1,4 +1,4 @@
-# rimage_gui(rimage v0.12.2 [re-compiled by Mika] )
+# rimage_gui(rimage v0.12.4 [re-compiled by Mika] )
 
 一个Rimage的GUI版本，能够批量压缩图片且不影响观感。
 

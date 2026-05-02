@@ -50,7 +50,7 @@ if(DBG){
     console.open()
 }
 
-var exe_size = 25241600
+var exe_size = 4174848
 var judge_original = (io.getSize(io._exedir + "rimage.exe") == exe_size)
 judge_real = io.exist(io._exedir + "realesrgan_rimage\rimage.exe")
 if(judge_real){

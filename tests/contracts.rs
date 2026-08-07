@@ -167,7 +167,9 @@ fn bounds_round_safely_and_detect_conflict() {
 #[test]
 fn validates_components_and_job_contract() {
     assert!(valid_component("updated"));
-    for bad in ["", ".", "..", "a/b", "a\\b", "bad.", "a:b"] {
+    for bad in [
+        "", ".", "..", "a/b", "a\\b", "bad.", "a:b", "CON", "com1", "NUL.txt",
+    ] {
         assert!(!valid_component(bad), "{bad}");
     }
     let mut j = job(OutputFormat::Jpeg);
@@ -376,7 +378,7 @@ fn predicted_paths_follow_suffix_extension_and_delete_rules() {
     spec.options.suffix = Some("small".into());
     assert_eq!(
         predicted_output_path(&input, &spec),
-        dir.path().join("Photo@small.webp")
+        dir.path().join("Photosmall.webp")
     );
 
     spec.options.format = OutputFormat::Png;
@@ -533,7 +535,7 @@ fn embedded_backend_converts_each_image_serially() {
     assert_eq!(successful_outputs.len(), 3);
     for (index, input) in inputs.iter().enumerate() {
         let expected = output_dir
-            .join(format!("输入 图片 {index}@verified.png"))
+            .join(format!("输入 图片 {index}verified.png"))
             .canonicalize()
             .unwrap();
         let (actual_input, output) = successful_outputs

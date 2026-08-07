@@ -141,12 +141,12 @@ impl Default for RimageApp {
             format: OutputFormat::Jpeg,
             quality: 85,
             quant_enabled: false,
-            quantization: 80,
+            quantization: 90,
             dither_enabled: false,
-            dithering: 75,
+            dithering: 90,
             suffix_enabled: true,
             saved_suffix_enabled: true,
-            suffix: "backup".into(),
+            suffix: "_new".into(),
             output_choice: 0,
             output_dir: PathBuf::new(),
             subfolder: "converted".into(),
@@ -203,7 +203,11 @@ impl RimageApp {
                 self.selected.insert(index);
             }
         }
-        self.status = Text::Idle;
+        // A conversion or an explicit failure may have happened while the scan
+        // was still running; do not overwrite those states with Idle.
+        if self.status == Text::Scanning {
+            self.status = Text::Idle;
+        }
     }
     fn selected_files(&self) -> Vec<PathBuf> {
         self.files

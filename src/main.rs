@@ -7,6 +7,12 @@ use rimage_gui::{
 };
 
 fn main() -> eframe::Result {
+    // Refresh the embedded backend before the window appears: whenever the
+    // cached rimage no longer matches the bundled bytes it is re-extracted.
+    // A failure here is non-fatal; the worker retries at job time and shows
+    // the error in the UI.
+    let _ = rimage_gui::backend::extract_backend();
+
     let mut viewport = egui::ViewportBuilder::default()
         .with_inner_size([1_020.0, 660.0])
         // Keep the floor useful but compact. The app performs a monitor-aware

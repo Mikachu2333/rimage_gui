@@ -280,13 +280,7 @@ fn run_job(job: JobSpec, cancel: Arc<AtomicBool>, tx: Sender<WorkerEvent>) {
     if let Err(error) = validate_job(&job) {
         let message = error.to_string();
         let _ = tx.send(WorkerEvent::ValidationFailed(error));
-        send_all_failed(&job, &message, &tx);
-        let _ = tx.send(WorkerEvent::Finished {
-            succeeded: 0,
-            failed: total,
-            skipped: 0,
-            cancelled: false,
-        });
+        abort_job(&job, &message, &tx);
         return;
     }
     let prepared_files = match prepare_job_files(&job) {
@@ -294,13 +288,7 @@ fn run_job(job: JobSpec, cancel: Arc<AtomicBool>, tx: Sender<WorkerEvent>) {
         Err(error) => {
             let message = error.to_string();
             let _ = tx.send(WorkerEvent::ValidationFailed(error));
-            send_all_failed(&job, &message, &tx);
-            let _ = tx.send(WorkerEvent::Finished {
-                succeeded: 0,
-                failed: total,
-                skipped: 0,
-                cancelled: false,
-            });
+            abort_job(&job, &message, &tx);
             return;
         }
     };
@@ -312,13 +300,7 @@ fn run_job(job: JobSpec, cancel: Arc<AtomicBool>, tx: Sender<WorkerEvent>) {
         Err(error) => {
             let message = error.to_string();
             let _ = tx.send(WorkerEvent::Log(message.clone()));
-            send_all_failed(&job, &message, &tx);
-            let _ = tx.send(WorkerEvent::Finished {
-                succeeded: 0,
-                failed: total,
-                skipped: 0,
-                cancelled: false,
-            });
+            abort_job(&job, &message, &tx);
             return;
         }
     };
@@ -458,6 +440,18 @@ fn send_all_failed(job: &JobSpec, message: &str, tx: &Sender<WorkerEvent>) {
             error: message.to_owned(),
         });
     }
+}
+
+/// Terminates a job that failed before any file started: every input reports a
+/// failure and the summary counts the whole batch as failed.
+fn abort_job(job: &JobSpec, message: &str, tx: &Sender<WorkerEvent>) {
+    send_all_failed(job, message, tx);
+    let _ = tx.send(WorkerEvent::Finished {
+        succeeded: 0,
+        failed: job.files.len(),
+        skipped: 0,
+        cancelled: false,
+    });
 }
 
 const MAX_DIAGNOSTIC_BYTES: usize = 16 * 1024;

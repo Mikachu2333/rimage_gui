@@ -23,7 +23,7 @@ impl Language {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Text {
     AppTitle,
     Files,
@@ -242,10 +242,10 @@ pub fn tr(language: Language, key: Text) -> &'static str {
         (true, Text::DropHint) => "可拖放文件或文件夹；扫描在后台进行。",
         (false, Text::DropHint) => "Drop files or folders here; scanning runs in the background.",
         (true, Text::BackupTip) => {
-            "rimage 0.12.5 会在输入旁创建 @backup 硬链接；若输出路径不同，成功发布后会删除原输入。选择此项会自动禁用输出后缀以避免名称冲突。"
+            "rimage 会把原输入保留为“输入名@backup”硬链接（原路径不再保留原内容），转换结果写入输出位置；输出与输入同目录时就地替换输入路径。选择此项会自动禁用输出后缀以避免名称冲突。"
         }
         (false, Text::BackupTip) => {
-            "rimage 0.12.5 creates an @backup hard link beside the input; when output differs, it deletes the original input after publishing. Selecting this automatically disables the output suffix to avoid name collisions."
+            "rimage preserves the original as a stem@backup.ext hard link (the original path no longer holds it) and writes the converted file to the output location; in the input directory the input path is replaced in place. Selecting this automatically disables the output suffix to avoid name collisions."
         }
         (true, Text::DeleteTip) => {
             "仅当 metadata 明确命中、输出非空且与输入不同、任务未取消时删除。"
@@ -274,10 +274,10 @@ pub fn tr(language: Language, key: Text) -> &'static str {
             "Reduces quantization banding; available only with quantization, range 1–100."
         }
         (true, Text::SuffixTip) => {
-            "自定义输出文件名后缀，默认 backup；输出名为 原名@后缀.扩展名。与“创建 @backup 备份”策略联动：选择备份会自动关闭后缀，勾选后缀会自动切换回“保留”策略。"
+            "自定义输出文件名后缀，默认 _new；输出名直接拼接在原名后（无分隔符），如 a.jpg → a_new.jpg。与“创建 @backup 备份”策略联动：选择备份会自动关闭后缀，勾选后缀会自动切换回“保留”策略。"
         }
         (false, Text::SuffixTip) => {
-            "Custom output-name suffix, default backup; output is stem@suffix.ext. Linked with the @backup policy: selecting Backup disables it, and checking it switches the policy back to Keep."
+            "Custom output-name suffix, default backup; output is stemsuffix.ext with no separator, e.g. a.jpg → abackup.jpg. Linked with the @backup policy: selecting Backup disables it, and checking it switches the policy back to Keep."
         }
         (true, Text::SuffixBackupHint) => "备份策略已接管后缀，勾选将自动切换为“保留”。",
         (false, Text::SuffixBackupHint) => {

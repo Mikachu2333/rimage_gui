@@ -29,7 +29,10 @@ pub enum MetadataError {
     MissingInput,
 }
 
-pub(crate) fn path_key(path: &Path) -> String {
+/// Returns a stable comparison key for a path. Existing paths are canonicalized;
+/// Windows comparisons are case-insensitive.
+#[must_use]
+pub fn path_key(path: &Path) -> String {
     let normalized = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
     let key = normalized.to_string_lossy().into_owned();
     if cfg!(windows) {

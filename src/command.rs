@@ -3,6 +3,7 @@ use std::{
     path::Path,
 };
 
+use crate::metadata::path_key;
 use crate::model::{JobSpec, OriginalPolicy, PreparedFile};
 
 /// Builds one rimage invocation for a single input file.
@@ -21,10 +22,20 @@ pub fn build_args(job: &JobSpec, file: &PreparedFile, metadata: &Path) -> Vec<Os
             OsString::from(options.quality.to_string()),
         ]);
     }
-    args.extend([
-        OsString::from("--directory"),
-        file.output_dir.as_os_str().to_owned(),
-    ]);
+    // rimage's `--backup` fails (exit 1, no diagnostic) when an explicit
+    // `--directory` resolves to the input's own directory: it renames the
+    // input to `<stem>@backup.<ext>` and then cannot publish the output.
+    // Omitting `--directory` in that case selects the identical output
+    // location while keeping the native in-place backup behavior.
+    let backup_outputs_in_place = job.options.original_policy == OriginalPolicy::Backup
+        && path_key(&file.output_dir)
+            == path_key(file.input.parent().unwrap_or_else(|| Path::new(".")));
+    if !backup_outputs_in_place {
+        args.extend([
+            OsString::from("--directory"),
+            file.output_dir.as_os_str().to_owned(),
+        ]);
+    }
     if let Some(suffix) = &options.suffix {
         args.extend([OsString::from("--suffix"), OsString::from(suffix)]);
     }
@@ -66,8 +77,10 @@ pub fn build_args(job: &JobSpec, file: &PreparedFile, metadata: &Path) -> Vec<Os
 ///
 /// Arguments are quoted using the escaping rules understood by the Microsoft
 /// C runtime (`CommandLineToArgvW`-compatible): backslashes before quotes and
-/// before the closing quote are doubled. Display uses lossy Unicode only for
-/// logging; the actual process still receives the original `OsString` values.
+/// before the closing quote are doubled (a quote preceded by `n` backslashes
+/// is emitted as `2n + 1` backslashes plus the quote). Display uses lossy
+/// Unicode only for logging; the actual process still receives the original
+/// `OsString` values.
 #[must_use]
 pub fn format_command_line(executable: &Path, args: &[OsString]) -> String {
     std::iter::once(executable.as_os_str())
@@ -95,7 +108,7 @@ fn quote_windows_arg(argument: &OsStr) -> String {
             backslashes += 1;
         } else {
             if character == '"' {
-                quoted.extend(std::iter::repeat_n('\\', backslashes + 1));
+                quoted.extend(std::iter::repeat_n('\\', backslashes * 2 + 1));
             } else {
                 quoted.extend(std::iter::repeat_n('\\', backslashes));
             }
@@ -124,11 +137,78 @@ mod tests {
             OsString::from("--directory"),
             OsString::from("C:\\输出 目录\\"),
             OsString::from("say\"hello"),
+            OsString::from(r#"C:\say\"hello"#),
+            OsString::from("tail\\"),
         ];
+        let line = format_command_line(Path::new("C:\\Program Files\\rimage.exe"), &args);
         assert_eq!(
-            format_command_line(Path::new("C:\\Program Files\\rimage.exe"), &args),
-            r#""C:\Program Files\rimage.exe" mozjpeg --directory "C:\输出 目录\\" "say\"hello""#
+            line,
+            r#""C:\Program Files\rimage.exe" mozjpeg --directory "C:\输出 目录\\" "say\"hello" "C:\say\\\"hello" tail\"#
         );
+    }
+
+    #[test]
+    fn backup_in_original_directory_omits_directory_flag() {
+        use crate::model::{OutputMode, ProcessingOptions, ResizeSpec};
+
+        let job = JobSpec {
+            files: vec!["C:\\a.jpg".into()],
+            options: ProcessingOptions {
+                format: OutputFormat::Jpeg,
+                quality: 85,
+                quantization: None,
+                dithering: None,
+                suffix: None,
+                output_mode: OutputMode::OriginalDir,
+                original_policy: OriginalPolicy::Backup,
+                resize: ResizeSpec::None,
+                hidden: true,
+            },
+        };
+        let file = PreparedFile {
+            input: "C:\\a.jpg".into(),
+            output_dir: "C:\\".into(),
+            resize: None,
+        };
+        let args = build_args(&job, &file, Path::new("C:\\meta.json"));
+        let text: Vec<String> = args
+            .iter()
+            .map(|a| a.to_string_lossy().into_owned())
+            .collect();
+        assert!(!text.contains(&"--directory".to_string()));
+        assert!(text.contains(&"--backup".to_string()));
+    }
+
+    #[test]
+    fn backup_in_selected_directory_keeps_directory_flag() {
+        use crate::model::{OutputMode, ProcessingOptions, ResizeSpec};
+
+        let job = JobSpec {
+            files: vec!["C:\\a.jpg".into()],
+            options: ProcessingOptions {
+                format: OutputFormat::Jpeg,
+                quality: 85,
+                quantization: None,
+                dithering: None,
+                suffix: None,
+                output_mode: OutputMode::SelectedDir("C:\\out".into()),
+                original_policy: OriginalPolicy::Backup,
+                resize: ResizeSpec::None,
+                hidden: true,
+            },
+        };
+        let file = PreparedFile {
+            input: "C:\\a.jpg".into(),
+            output_dir: "C:\\out".into(),
+            resize: None,
+        };
+        let args = build_args(&job, &file, Path::new("C:\\meta.json"));
+        let text: Vec<String> = args
+            .iter()
+            .map(|a| a.to_string_lossy().into_owned())
+            .collect();
+        assert!(text.contains(&"--directory".to_string()));
+        assert!(text.contains(&"C:\\out".to_string()));
     }
 
     #[test]

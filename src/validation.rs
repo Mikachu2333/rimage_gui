@@ -6,6 +6,7 @@ use std::{
 
 use thiserror::Error;
 
+pub use crate::metadata::path_key;
 use crate::model::{
     BoundKind, JobSpec, OriginalPolicy, OutputMode, PreparedFile, ResizeFilter, ResizeSpec,
     ResizeTarget, SizeBounds,
@@ -45,8 +46,16 @@ pub enum ValidationError {
     OutputOverwritesInput(PathBuf),
 }
 
+/// Windows device names are reserved even with an extension (for example
+/// `CON`, `AUX`, `COM1`, `NUL.txt`), so they must not be used as a suffix or
+/// subfolder name.
 #[must_use]
 pub fn valid_component(value: &str) -> bool {
+    const RESERVED: &[&str] = &[
+        "con", "prn", "aux", "nul", "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8",
+        "com9", "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9",
+    ];
+    let base = value.split('.').next().unwrap_or_default();
     !value.is_empty()
         && value != "."
         && value != ".."
@@ -54,6 +63,7 @@ pub fn valid_component(value: &str) -> bool {
         && !value.chars().any(|c| {
             c.is_control() || matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|')
         })
+        && !RESERVED.iter().any(|name| base.eq_ignore_ascii_case(name))
 }
 
 /// # Errors
@@ -115,19 +125,6 @@ fn validate_resize(resize: &ResizeSpec) -> Result<(), ValidationError> {
     }
 }
 
-/// Returns a stable comparison key for a path. Existing paths are canonicalized;
-/// Windows comparisons are case-insensitive.
-#[must_use]
-pub fn path_key(path: &Path) -> String {
-    let normalized = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
-    let key = normalized.to_string_lossy().into_owned();
-    if cfg!(windows) {
-        key.to_lowercase()
-    } else {
-        key
-    }
-}
-
 /// Predicts rimage 0.12.5's output path for one input.
 #[must_use]
 pub fn predicted_output_path(input: &Path, job: &JobSpec) -> PathBuf {
@@ -140,7 +137,7 @@ pub fn predicted_output_path(input: &Path, job: &JobSpec) -> PathBuf {
     let stem = input.file_stem().unwrap_or_default().to_string_lossy();
     let file_name = job.options.suffix.as_ref().map_or_else(
         || format!("{stem}.{}", job.options.format.extension()),
-        |suffix| format!("{stem}@{suffix}.{}", job.options.format.extension()),
+        |suffix| format!("{stem}{suffix}.{}", job.options.format.extension()),
     );
     output_dir.join(file_name)
 }

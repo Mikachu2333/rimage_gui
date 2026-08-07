@@ -1,3 +1,4 @@
+/dist/
 /target/
 /target-*/
 *.pdb

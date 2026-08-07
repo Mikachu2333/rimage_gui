@@ -20,6 +20,36 @@ use crate::{
 
 const MAX_LOG_LINES: usize = 2_000;
 
+/// Default inner size and minimum size for the main window. Both are
+/// re-clamped to the monitor on the first frame.
+pub const WINDOW_INNER_SIZE: egui::Vec2 = egui::Vec2::new(860.0, 660.0);
+pub const WINDOW_MIN_INNER_SIZE: egui::Vec2 = egui::Vec2::new(860.0, 500.0);
+/// Margin kept between the clamped window and the monitor edges.
+const WINDOW_MARGIN: f32 = 40.0;
+
+/// Width of the right-hand options panel.
+const OPTIONS_WIDTH: f32 = 300.0;
+/// Height of the primary start button.
+const ACTION_BUTTON_HEIGHT: f32 = 42.0;
+/// Height of the secondary (cancel) button.
+const OTHER_ACTION_BUTTON_HEIGHT: f32 = 32.0;
+/// Space reserved below the options scroll area for the action buttons,
+/// their separator, and the panel's bottom margin.
+const OPTIONS_BOTTOM_RESERVED: f32 = 70.0;
+
+/// The log region receives this share of the remaining central-panel height.
+const LOG_REGION_SHARE: f32 = 0.35;
+const LOG_REGION_MIN_HEIGHT: f32 = 80.0;
+const LOG_REGION_MAX_HEIGHT: f32 = 250.0;
+/// The file list never shrinks below this height while the window is usable.
+const LIST_REGION_MIN_HEIGHT: f32 = 40.0;
+
+/// Size of the file-list action buttons in the central panel. The height
+/// matches the buttons' natural height (12pt text + vertical padding), so the
+/// fixed-size cells never overflow and horizontal rows stay symmetric.
+const FILE_ACTION_SIZE: egui::Vec2 = egui::Vec2::new(96.0, 30.0);
+const PROGRESS_BAR_HEIGHT: f32 = 16.0;
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum BoundUi {
     Disabled,
@@ -99,8 +129,19 @@ pub fn adjust_suffix_for_policy(
     }
 }
 
+/// Height reserved for the log region below the file list. The proportional
+/// share is bounded so both regions stay useful at any window size, and the
+/// list always keeps a minimum slice when the window is short.
+#[must_use]
+fn log_region_height(available: f32) -> f32 {
+    (available * LOG_REGION_SHARE)
+        .clamp(LOG_REGION_MIN_HEIGHT, LOG_REGION_MAX_HEIGHT)
+        .min((available - LIST_REGION_MIN_HEIGHT).max(0.0))
+}
+
 #[allow(clippy::struct_excessive_bools)]
 pub struct RimageApp {
+    /// Resolved system language at startup; the UI offers no language switch.
     language: Language,
     files: Vec<PathBuf>,
     selected: HashSet<usize>,
@@ -135,7 +176,7 @@ pub struct RimageApp {
 impl Default for RimageApp {
     fn default() -> Self {
         Self {
-            language: Language::System,
+            language: Language::System.effective(),
             files: vec![],
             selected: HashSet::new(),
             format: OutputFormat::Jpeg,
@@ -227,6 +268,16 @@ impl RimageApp {
         self.policy = next;
         self.suffix_enabled = enabled;
         self.saved_suffix_enabled = saved;
+    }
+    /// Re-enabling the suffix while Backup is active switches the policy back
+    /// to Keep instead of allowing both to fight over the same files.
+    fn set_suffix_enabled(&mut self, want: bool) {
+        if want && self.policy == OriginalPolicy::Backup {
+            self.set_policy(OriginalPolicy::Keep);
+            self.suffix_enabled = true;
+        } else {
+            self.suffix_enabled = want;
+        }
     }
     fn job(&self) -> JobSpec {
         JobSpec {
@@ -409,6 +460,527 @@ impl RimageApp {
             }
         });
     }
+
+    // ---- UI sections ----
+
+    fn options_panel_ui(&mut self, ui: &mut egui::Ui, busy: bool) {
+        // Parameter controls are intentionally roomier than the main file
+        // list: this is the app's primary interaction surface.
+        ui.spacing_mut().item_spacing = egui::vec2(10.0, 7.0);
+        ui.spacing_mut().interact_size.y = 34.0;
+        // Keep a visual gutter between the controls and the right window
+        // edge. The scroll bar remains inside this gutter.
+        ui.set_max_width((ui.available_width() - 22.0).max(0.0));
+        ui.add_space(4.0);
+        ui.heading(self.text(Text::Options));
+        ui.add_space(4.0);
+        // Reserve the complete action row, separator, spacing and the panel's
+        // bottom margin so the thick button frame never extends below the
+        // viewport on short windows.
+        let options_height = (ui.available_height() - OPTIONS_BOTTOM_RESERVED).max(0.0);
+        egui::ScrollArea::vertical()
+            .id_salt("options-scroll")
+            .auto_shrink([false, false])
+            .max_height(options_height)
+            .show(ui, |ui| {
+                ui.add_enabled_ui(!busy, |ui| {
+                    egui::CollapsingHeader::new(self.text(Text::EncodingGroup))
+                        .default_open(true)
+                        .show(ui, |ui| self.encoding_group_ui(ui));
+                    egui::CollapsingHeader::new(self.text(Text::OutputLocationGroup))
+                        .default_open(true)
+                        .show(ui, |ui| self.output_location_group_ui(ui));
+                    egui::CollapsingHeader::new(self.text(Text::OriginalFilesGroup))
+                        .default_open(true)
+                        .show(ui, |ui| self.original_policy_group_ui(ui));
+                    egui::CollapsingHeader::new(self.text(Text::SizeLimitsGroup))
+                        .default_open(true)
+                        .show(ui, |ui| self.size_limits_group_ui(ui));
+                    egui::CollapsingHeader::new(self.text(Text::ExecutionGroup))
+                        .default_open(true)
+                        .show(ui, |ui| self.execution_group_ui(ui));
+                });
+            });
+        ui.separator();
+        self.action_buttons_ui(ui, self.worker.is_some());
+    }
+
+    fn encoding_group_ui(&mut self, ui: &mut egui::Ui) {
+        let backup_active = self.policy == OriginalPolicy::Backup;
+        egui::Grid::new("encoding-grid")
+            .num_columns(2)
+            .spacing([14.0, 8.0])
+            .show(ui, |ui| {
+                ui.label(self.text(Text::Format))
+                    .on_hover_text(self.text(Text::FormatTip));
+                egui::ComboBox::from_id_salt("format")
+                    .selected_text(self.format.cli_name())
+                    .width(170.0)
+                    .show_ui(ui, |ui| {
+                        for f in OutputFormat::ALL {
+                            ui.selectable_value(&mut self.format, f, f.cli_name());
+                        }
+                    })
+                    .response
+                    .on_hover_text(self.text(Text::FormatTip));
+                ui.end_row();
+                ui.label(self.text(Text::Quality))
+                    .on_hover_text(self.text(Text::QualityTip));
+                ui.add_enabled(
+                    self.format.supports_quality(),
+                    egui::DragValue::new(&mut self.quality).range(1..=100),
+                )
+                .on_hover_text(self.text(Text::QualityTip));
+                ui.end_row();
+                ui.checkbox(
+                    &mut self.quant_enabled,
+                    tr(self.language, Text::Quantization),
+                )
+                .on_hover_text(self.text(Text::QuantizationTip));
+                ui.add_enabled(
+                    self.quant_enabled,
+                    egui::DragValue::new(&mut self.quantization).range(1..=100),
+                );
+                ui.end_row();
+                ui.checkbox(&mut self.dither_enabled, tr(self.language, Text::Dithering))
+                    .on_hover_text(self.text(Text::DitheringTip));
+                ui.add_enabled(
+                    self.quant_enabled && self.dither_enabled,
+                    egui::DragValue::new(&mut self.dithering).range(1..=100),
+                );
+                ui.end_row();
+                let mut suffix_want = self.suffix_enabled;
+                let suffix_check = ui
+                    .add(egui::Checkbox::new(
+                        &mut suffix_want,
+                        tr(self.language, Text::Suffix),
+                    ))
+                    .on_hover_text(self.text(Text::SuffixTip));
+                if suffix_check.changed() {
+                    self.set_suffix_enabled(suffix_want);
+                }
+                ui.add_enabled(
+                    self.suffix_enabled && !backup_active,
+                    egui::TextEdit::singleline(&mut self.suffix).desired_width(140.0),
+                )
+                .on_hover_text(self.text(Text::SuffixTip));
+                ui.end_row();
+            });
+        if backup_active {
+            // Keep this variable-width hint outside the two-column grid.
+            // Otherwise its long text widens the first column and shifts every
+            // control in the group.
+            ui.add_space(2.0);
+            ui.label(self.text(Text::SuffixBackupHint));
+        }
+    }
+
+    fn output_location_group_ui(&mut self, ui: &mut egui::Ui) {
+        ui.label(self.text(Text::OutputMode))
+            .on_hover_text(self.text(Text::OutputModeTip));
+        ui.horizontal_wrapped(|ui| {
+            ui.selectable_value(
+                &mut self.output_choice,
+                0,
+                tr(self.language, Text::OriginalDir),
+            )
+            .on_hover_text(self.text(Text::OriginalDirTip));
+            ui.selectable_value(
+                &mut self.output_choice,
+                1,
+                tr(self.language, Text::SelectedDir),
+            )
+            .on_hover_text(self.text(Text::SelectedDirTip));
+            ui.selectable_value(
+                &mut self.output_choice,
+                2,
+                tr(self.language, Text::Subfolder),
+            )
+            .on_hover_text(self.text(Text::SubfolderTip));
+        });
+        if self.output_choice == 1 {
+            ui.horizontal(|ui| {
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.output_dir.to_string_lossy().into_owned())
+                        .desired_width(210.0)
+                        .interactive(false),
+                );
+                let browse_clicked = ui
+                    .scope(|ui| {
+                        ui.spacing_mut().interact_size.y = 24.0;
+                        ui.add_sized(
+                            egui::vec2(72.0, 24.0),
+                            egui::Button::new(self.text(Text::Browse)),
+                        )
+                    })
+                    .inner
+                    .clicked();
+                if browse_clicked && let Some(p) = rfd::FileDialog::new().pick_folder() {
+                    self.output_dir = p;
+                }
+            });
+        } else if self.output_choice == 2 {
+            ui.horizontal(|ui| {
+                ui.label(self.text(Text::Subfolder));
+                ui.add(egui::TextEdit::singleline(&mut self.subfolder).desired_width(170.0))
+                    .on_hover_text(self.text(Text::SubfolderTip));
+            });
+        }
+    }
+
+    fn original_policy_group_ui(&mut self, ui: &mut egui::Ui) {
+        ui.label(self.text(Text::OriginalPolicy));
+        ui.horizontal_wrapped(|ui| {
+            let mut policy = self.policy;
+            if ui
+                .selectable_value(
+                    &mut policy,
+                    OriginalPolicy::Keep,
+                    tr(self.language, Text::Keep),
+                )
+                .on_hover_text(self.text(Text::KeepTip))
+                .changed()
+            {
+                self.set_policy(policy);
+            }
+            if ui
+                .selectable_value(
+                    &mut policy,
+                    OriginalPolicy::Backup,
+                    tr(self.language, Text::Backup),
+                )
+                .on_hover_text(self.text(Text::BackupTip))
+                .changed()
+            {
+                self.set_policy(policy);
+            }
+            if ui
+                .selectable_value(
+                    &mut policy,
+                    OriginalPolicy::DeleteAfterVerifiedSuccess,
+                    tr(self.language, Text::Delete),
+                )
+                .on_hover_text(self.text(Text::DeleteTip))
+                .changed()
+            {
+                self.set_policy(policy);
+            }
+        });
+    }
+
+    fn size_limits_group_ui(&mut self, ui: &mut egui::Ui) {
+        ui.label(self.text(Text::ResizeMode))
+            .on_hover_text(self.text(Text::ResizeModeTip));
+        ui.horizontal_wrapped(|ui| {
+            ui.selectable_value(
+                &mut self.resize_mode,
+                ResizeUi::Off,
+                tr(self.language, Text::ResizeNone),
+            );
+            ui.selectable_value(
+                &mut self.resize_mode,
+                ResizeUi::Classic,
+                tr(self.language, Text::ResizeClassic),
+            );
+            ui.selectable_value(
+                &mut self.resize_mode,
+                ResizeUi::Bounds,
+                tr(self.language, Text::ResizeBounds),
+            );
+        });
+        match self.resize_mode {
+            ResizeUi::Off => {}
+            ResizeUi::Classic => {
+                ui.horizontal(|ui| {
+                    ui.label(self.text(Text::ResizeArgs))
+                        .on_hover_text(self.text(Text::ResizeArgsTip));
+                    ui.add(
+                        egui::TextEdit::singleline(&mut self.resize_arg)
+                            .desired_width(180.0)
+                            .hint_text("1920x1080 / 720w / @1.5 / 150%"),
+                    )
+                    .on_hover_text(self.text(Text::ResizeArgsTip));
+                });
+                ui.horizontal(|ui| {
+                    ui.label(self.text(Text::Filter))
+                        .on_hover_text(self.text(Text::FilterTip));
+                    egui::ComboBox::from_id_salt("resize-filter")
+                        .selected_text(self.filter.cli_name())
+                        .width(170.0)
+                        .show_ui(ui, |ui| {
+                            for filter in ResizeFilter::ALL {
+                                ui.selectable_value(&mut self.filter, filter, filter.cli_name());
+                            }
+                        })
+                        .response
+                        .on_hover_text(self.text(Text::FilterTip));
+                });
+            }
+            ResizeUi::Bounds => {
+                Self::bound_ui(ui, self.language, Text::MinSize, &mut self.min_bound);
+                Self::bound_ui(ui, self.language, Text::MaxSize, &mut self.max_bound);
+            }
+        }
+    }
+
+    fn execution_group_ui(&mut self, ui: &mut egui::Ui) {
+        ui.checkbox(&mut self.hidden, tr(self.language, Text::HiddenExecute))
+            .on_hover_text(self.text(Text::HiddenExecuteTip));
+    }
+
+    fn action_buttons_ui(&mut self, ui: &mut egui::Ui, conversion_busy: bool) {
+        let start_size = egui::vec2(ui.available_width(), ACTION_BUTTON_HEIGHT);
+        let other_action_size = egui::vec2(ui.available_width(), OTHER_ACTION_BUTTON_HEIGHT);
+        let action_stroke = egui::Stroke::new(2.0_f32, ui.visuals().strong_text_color());
+        if conversion_busy {
+            if ui
+                .add_sized(
+                    other_action_size,
+                    egui::Button::new(
+                        egui::RichText::new(self.text(Text::Cancel))
+                            .size(18.0)
+                            .strong(),
+                    )
+                    .stroke(action_stroke),
+                )
+                .on_hover_text(self.text(Text::CancelTip))
+                .clicked()
+                && let Some(worker) = &self.worker
+            {
+                worker.cancel();
+            }
+        } else if ui
+            .add_enabled_ui(!self.selected.is_empty(), |ui| {
+                ui.add_sized(
+                    start_size,
+                    egui::Button::new(
+                        egui::RichText::new(self.text(Text::Start))
+                            .size(18.0)
+                            .strong(),
+                    )
+                    .stroke(action_stroke),
+                )
+            })
+            .inner
+            .on_hover_text(self.text(Text::StartTip))
+            .clicked()
+        {
+            self.start();
+        }
+    }
+
+    fn central_panel_ui(&mut self, ui: &mut egui::Ui, busy: bool) {
+        ui.spacing_mut().item_spacing.x = 8.0;
+        ui.spacing_mut().item_spacing.y = 6.0;
+        ui.spacing_mut().interact_size.y = 16.0;
+        self.file_actions_ui(ui, busy);
+        self.selection_actions_ui(ui, busy);
+        ui.label(self.text(Text::DropHint));
+        // The file list and log fill the left column like the progress row.
+        // Their frames derive the width from the panel itself, so they can
+        // never overflow under the options panel.
+        let available = ui.available_height().max(0.0);
+        let list_height = (available - log_region_height(available)).max(0.0);
+        self.file_list_ui(ui, busy, list_height);
+        ui.separator();
+        self.progress_row_ui(ui);
+        ui.label(self.text(Text::Log));
+        let log_height = ui.available_height().max(0.0);
+        self.log_ui(ui, log_height);
+    }
+
+    fn file_action_button(
+        ui: &mut egui::Ui,
+        enabled: bool,
+        text: &str,
+        size: egui::Vec2,
+    ) -> egui::Response {
+        ui.add_enabled_ui(enabled, |ui| ui.add_sized(size, egui::Button::new(text)))
+            .inner
+    }
+
+    fn file_actions_ui(&mut self, ui: &mut egui::Ui, busy: bool) {
+        // Row 1: add actions plus the live selection counter.
+        ui.horizontal(|ui| {
+            if Self::file_action_button(ui, !busy, self.text(Text::AddFiles), FILE_ACTION_SIZE)
+                .on_hover_text(self.text(Text::AddFilesTip))
+                .clicked()
+            {
+                let files = rfd::FileDialog::new().pick_files().unwrap_or_default();
+                self.begin_scan(files);
+            }
+            if Self::file_action_button(ui, !busy, self.text(Text::AddFolder), FILE_ACTION_SIZE)
+                .on_hover_text(self.text(Text::AddFolderTip))
+                .clicked()
+                && let Some(dir) = rfd::FileDialog::new().pick_folder()
+            {
+                self.begin_scan(vec![dir]);
+            }
+            ui.add_space(4.0);
+            ui.label(format!(
+                "{}: {}/{}",
+                self.text(Text::SelectedCount),
+                self.selected.len(),
+                self.files.len()
+            ));
+        });
+    }
+
+    fn selection_actions_ui(&mut self, ui: &mut egui::Ui, busy: bool) {
+        // Row 2: list-wide selection actions.
+        ui.horizontal(|ui| {
+            if Self::file_action_button(
+                ui,
+                !busy && !self.files.is_empty(),
+                self.text(Text::SelectAll),
+                FILE_ACTION_SIZE,
+            )
+            .on_hover_text(self.text(Text::SelectAllTip))
+            .clicked()
+            {
+                self.selected = (0..self.files.len()).collect();
+            }
+            if Self::file_action_button(
+                ui,
+                !busy && !self.selected.is_empty(),
+                self.text(Text::DeselectAll),
+                FILE_ACTION_SIZE,
+            )
+            .on_hover_text(self.text(Text::DeselectAllTip))
+            .clicked()
+            {
+                self.selected.clear();
+            }
+            if Self::file_action_button(
+                ui,
+                !busy && !self.selected.is_empty(),
+                self.text(Text::Remove),
+                FILE_ACTION_SIZE,
+            )
+            .on_hover_text(self.text(Text::RemoveTip))
+            .clicked()
+            {
+                self.remove_selected();
+            }
+            if Self::file_action_button(
+                ui,
+                !busy && !self.files.is_empty(),
+                self.text(Text::Clear),
+                FILE_ACTION_SIZE,
+            )
+            .on_hover_text(self.text(Text::ClearTip))
+            .clicked()
+            {
+                self.files.clear();
+                self.selected.clear();
+            }
+        });
+    }
+
+    fn file_list_ui(&mut self, ui: &mut egui::Ui, busy: bool, height: f32) {
+        let row_height = ui.text_style_height(&egui::TextStyle::Body) + 6.0;
+        let frame = egui::Frame::group(ui.style());
+        let content_height = (height - frame.total_margin().sum().y).max(0.0);
+        frame.show(ui, |ui| {
+            ui.set_height(content_height);
+            egui::ScrollArea::both()
+                .id_salt("files")
+                .auto_shrink([false, false])
+                .max_height(content_height)
+                .show_rows(ui, row_height, self.files.len(), |ui, range| {
+                    for i in range {
+                        ui.horizontal(|ui| {
+                            let mut selected = self.selected.contains(&i);
+                            if ui
+                                .add_enabled(!busy, egui::Checkbox::without_text(&mut selected))
+                                .changed()
+                            {
+                                if selected {
+                                    self.selected.insert(i);
+                                } else {
+                                    self.selected.remove(&i);
+                                }
+                            }
+                            ui.add(
+                                egui::Label::new(display_path(&self.files[i]))
+                                    .truncate()
+                                    .selectable(false),
+                            )
+                            .on_hover_text(display_path(&self.files[i]));
+                        });
+                    }
+                });
+        });
+    }
+
+    #[allow(clippy::cast_precision_loss)]
+    fn progress_row_ui(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            ui.label(format!(
+                "{}: {}",
+                self.text(Text::Progress),
+                self.text(self.status)
+            ));
+            let fraction = if self.total == 0 {
+                0.0
+            } else {
+                self.completed as f32 / self.total as f32
+            };
+            let progress_width = ui.available_width().max(80.0);
+            ui.add_sized(
+                egui::vec2(progress_width, PROGRESS_BAR_HEIGHT),
+                egui::ProgressBar::new(fraction).show_percentage(),
+            );
+        });
+    }
+
+    fn log_ui(&mut self, ui: &mut egui::Ui, height: f32) {
+        let frame = egui::Frame::group(ui.style());
+        let content_height = (height - frame.total_margin().sum().y).max(0.0);
+        frame.show(ui, |ui| {
+            ui.set_height(content_height);
+            egui::ScrollArea::both()
+                .id_salt("log")
+                .stick_to_bottom(true)
+                .auto_shrink([false, false])
+                .max_height(content_height)
+                .show(ui, |ui| {
+                    for line in &self.logs {
+                        ui.label(line);
+                    }
+                });
+        });
+    }
+
+    fn clamp_window_once(&mut self, ctx: &egui::Context) {
+        if self.window_sized {
+            return;
+        }
+        self.window_sized = true;
+        if let Some(monitor) = ctx.input(|i| i.viewport().monitor_size) {
+            let (size, min) = clamped_window_size(
+                WINDOW_INNER_SIZE,
+                monitor,
+                WINDOW_MARGIN,
+                WINDOW_MIN_INNER_SIZE,
+            );
+            ctx.send_viewport_cmd(egui::ViewportCommand::MinInnerSize(min));
+            ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(size));
+        }
+    }
+
+    fn handle_dropped_files(&mut self, ctx: &egui::Context, busy: bool) {
+        let dropped: Vec<PathBuf> = ctx.input(|i| {
+            i.raw
+                .dropped_files
+                .iter()
+                .filter_map(|f| f.path.clone())
+                .collect()
+        });
+        if !dropped.is_empty() && !busy {
+            self.begin_scan(dropped);
+        }
+    }
 }
 
 impl Drop for RimageApp {
@@ -420,560 +992,25 @@ impl Drop for RimageApp {
 }
 
 impl eframe::App for RimageApp {
-    #[allow(clippy::too_many_lines, clippy::cast_precision_loss)]
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        if !self.window_sized {
-            self.window_sized = true;
-            if let Some(monitor) = ctx.input(|i| i.viewport().monitor_size) {
-                let (size, min) = clamped_window_size(
-                    egui::vec2(1_020.0, 660.0),
-                    monitor,
-                    40.0,
-                    egui::vec2(620.0, 420.0),
-                );
-                ctx.send_viewport_cmd(egui::ViewportCommand::MinInnerSize(min));
-                ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(size));
-            }
-        }
+        self.clamp_window_once(ctx);
         self.poll(ctx);
-        let conversion_busy = self.worker.is_some();
-        let scan_busy = self.scan_rx.is_some();
-        let busy = conversion_busy || scan_busy;
-        let dropped: Vec<PathBuf> = ctx.input(|i| {
-            i.raw
-                .dropped_files
-                .iter()
-                .filter_map(|f| f.path.clone())
-                .collect()
-        });
-        if !dropped.is_empty() && !busy {
-            self.begin_scan(dropped);
-        }
-        egui::TopBottomPanel::top("top").show(ctx, |ui| {
-            ui.horizontal_wrapped(|ui| {
-                ui.heading(self.text(Text::AppTitle));
-                ui.separator();
-                ui.label(self.text(Text::Language));
-                egui::ComboBox::from_id_salt("language")
-                    .selected_text(match self.language {
-                        Language::System => "System",
-                        Language::Chinese => "中文",
-                        Language::English => "English",
-                    })
-                    .show_ui(ui, |ui| {
-                        ui.selectable_value(&mut self.language, Language::System, "System");
-                        ui.selectable_value(&mut self.language, Language::Chinese, "中文");
-                        ui.selectable_value(&mut self.language, Language::English, "English");
-                    });
-            });
-        });
-        let options_width = (ctx.available_rect().width() * 0.40).clamp(280.0, 410.0);
+        let busy = self.worker.is_some() || self.scan_rx.is_some();
+        self.handle_dropped_files(ctx, busy);
         egui::SidePanel::right("options")
             .resizable(false)
-            .exact_width(options_width)
-            .show(ctx, |ui| {
-                // Parameter controls are intentionally roomier than the main
-                // file list: this is the app's primary interaction surface.
-                ui.spacing_mut().item_spacing = egui::vec2(12.0, 10.0);
-                ui.spacing_mut().interact_size.y = 38.0;
-                // Keep a visual gutter between the controls and the right
-                // window edge. The scroll bar remains inside this gutter.
-                ui.set_max_width((ui.available_width() - 22.0).max(0.0));
-                ui.add_space(4.0);
-                ui.heading(self.text(Text::Options));
-                ui.add_space(4.0);
-                // Reserve the complete action row, separator, spacing and the
-                // panel's bottom margin. This prevents the thick button frame
-                // from extending below the viewport on short windows.
-                let options_height = (ui.available_height() - 76.0).max(0.0);
-                egui::ScrollArea::vertical()
-                    .id_salt("options-scroll")
-                    .auto_shrink([false, false])
-                    .max_height(options_height)
-                    .show(ui, |ui| {
-                        ui.add_enabled_ui(!busy, |ui| {
-                            egui::CollapsingHeader::new(self.text(Text::EncodingGroup))
-                                .default_open(true)
-                                .show(ui, |ui| {
-                                    let backup_active = self.policy == OriginalPolicy::Backup;
-                                    egui::Grid::new("encoding-grid")
-                                        .num_columns(2)
-                                        .spacing([20.0, 11.0])
-                                        .show(ui, |ui| {
-                                            ui.label(self.text(Text::Format))
-                                                .on_hover_text(self.text(Text::FormatTip));
-                                            egui::ComboBox::from_id_salt("format")
-                                                .selected_text(self.format.cli_name())
-                                                .width(190.0)
-                                                .show_ui(ui, |ui| {
-                                                    for f in OutputFormat::ALL {
-                                                        ui.selectable_value(
-                                                            &mut self.format,
-                                                            f,
-                                                            f.cli_name(),
-                                                        );
-                                                    }
-                                                })
-                                                .response
-                                                .on_hover_text(self.text(Text::FormatTip));
-                                            ui.end_row();
-                                            ui.label(self.text(Text::Quality))
-                                                .on_hover_text(self.text(Text::QualityTip));
-                                            ui.add_enabled(
-                                                self.format.supports_quality(),
-                                                egui::DragValue::new(&mut self.quality)
-                                                    .range(1..=100),
-                                            )
-                                            .on_hover_text(self.text(Text::QualityTip));
-                                            ui.end_row();
-                                            ui.checkbox(
-                                                &mut self.quant_enabled,
-                                                tr(self.language, Text::Quantization),
-                                            )
-                                            .on_hover_text(self.text(Text::QuantizationTip));
-                                            ui.add_enabled(
-                                                self.quant_enabled,
-                                                egui::DragValue::new(&mut self.quantization)
-                                                    .range(1..=100),
-                                            );
-                                            ui.end_row();
-                                            ui.checkbox(
-                                                &mut self.dither_enabled,
-                                                tr(self.language, Text::Dithering),
-                                            )
-                                            .on_hover_text(self.text(Text::DitheringTip));
-                                            ui.add_enabled(
-                                                self.quant_enabled && self.dither_enabled,
-                                                egui::DragValue::new(&mut self.dithering)
-                                                    .range(1..=100),
-                                            );
-                                            ui.end_row();
-                                            let mut suffix_want = self.suffix_enabled;
-                                            let suffix_check = ui
-                                                .add(egui::Checkbox::new(
-                                                    &mut suffix_want,
-                                                    tr(self.language, Text::Suffix),
-                                                ))
-                                                .on_hover_text(self.text(Text::SuffixTip));
-                                            if suffix_check.changed() {
-                                                if suffix_want && backup_active {
-                                                    self.set_policy(OriginalPolicy::Keep);
-                                                    self.suffix_enabled = true;
-                                                } else {
-                                                    self.suffix_enabled = suffix_want;
-                                                }
-                                            }
-                                            ui.add_enabled(
-                                                self.suffix_enabled && !backup_active,
-                                                egui::TextEdit::singleline(&mut self.suffix)
-                                                    .desired_width(140.0),
-                                            )
-                                            .on_hover_text(self.text(Text::SuffixTip));
-                                            ui.end_row();
-                                        });
-                                    if backup_active {
-                                        // Keep this variable-width hint outside
-                                        // the two-column grid. Otherwise its
-                                        // long text widens the first column and
-                                        // shifts every control in the group.
-                                        ui.add_space(2.0);
-                                        ui.label(self.text(Text::SuffixBackupHint));
-                                    }
-                                });
-                            egui::CollapsingHeader::new(self.text(Text::OutputLocationGroup))
-                                .default_open(true)
-                                .show(ui, |ui| {
-                                    ui.label(self.text(Text::OutputMode))
-                                        .on_hover_text(self.text(Text::OutputModeTip));
-                                    ui.horizontal_wrapped(|ui| {
-                                        ui.selectable_value(
-                                            &mut self.output_choice,
-                                            0,
-                                            tr(self.language, Text::OriginalDir),
-                                        )
-                                        .on_hover_text(self.text(Text::OriginalDirTip));
-                                        ui.selectable_value(
-                                            &mut self.output_choice,
-                                            1,
-                                            tr(self.language, Text::SelectedDir),
-                                        )
-                                        .on_hover_text(self.text(Text::SelectedDirTip));
-                                        ui.selectable_value(
-                                            &mut self.output_choice,
-                                            2,
-                                            tr(self.language, Text::Subfolder),
-                                        )
-                                        .on_hover_text(self.text(Text::SubfolderTip));
-                                    });
-                                    if self.output_choice == 1 {
-                                        ui.horizontal(|ui| {
-                                            ui.add(
-                                                egui::TextEdit::singleline(
-                                                    &mut self
-                                                        .output_dir
-                                                        .to_string_lossy()
-                                                        .into_owned(),
-                                                )
-                                                .desired_width(260.0)
-                                                .interactive(false),
-                                            );
-                                            let browse_clicked = ui
-                                                .scope(|ui| {
-                                                    ui.spacing_mut().interact_size.y = 24.0;
-                                                    ui.add_sized(
-                                                        egui::vec2(72.0, 24.0),
-                                                        egui::Button::new(self.text(Text::Browse)),
-                                                    )
-                                                })
-                                                .inner
-                                                .clicked();
-                                            if browse_clicked
-                                                && let Some(p) =
-                                                    rfd::FileDialog::new().pick_folder()
-                                            {
-                                                self.output_dir = p;
-                                            }
-                                        });
-                                    } else if self.output_choice == 2 {
-                                        ui.horizontal(|ui| {
-                                            ui.label(self.text(Text::Subfolder));
-                                            ui.add(
-                                                egui::TextEdit::singleline(&mut self.subfolder)
-                                                    .desired_width(200.0),
-                                            )
-                                            .on_hover_text(self.text(Text::SubfolderTip));
-                                        });
-                                    }
-                                });
-                            egui::CollapsingHeader::new(self.text(Text::OriginalFilesGroup))
-                                .default_open(true)
-                                .show(ui, |ui| {
-                                    ui.label(self.text(Text::OriginalPolicy));
-                                    ui.horizontal_wrapped(|ui| {
-                                        let mut policy = self.policy;
-                                        if ui
-                                            .selectable_value(
-                                                &mut policy,
-                                                OriginalPolicy::Keep,
-                                                tr(self.language, Text::Keep),
-                                            )
-                                            .on_hover_text(self.text(Text::KeepTip))
-                                            .changed()
-                                        {
-                                            self.set_policy(policy);
-                                        }
-                                        if ui
-                                            .selectable_value(
-                                                &mut policy,
-                                                OriginalPolicy::Backup,
-                                                tr(self.language, Text::Backup),
-                                            )
-                                            .on_hover_text(self.text(Text::BackupTip))
-                                            .changed()
-                                        {
-                                            self.set_policy(policy);
-                                        }
-                                        if ui
-                                            .selectable_value(
-                                                &mut policy,
-                                                OriginalPolicy::DeleteAfterVerifiedSuccess,
-                                                tr(self.language, Text::Delete),
-                                            )
-                                            .on_hover_text(self.text(Text::DeleteTip))
-                                            .changed()
-                                        {
-                                            self.set_policy(policy);
-                                        }
-                                    });
-                                });
-                            egui::CollapsingHeader::new(self.text(Text::SizeLimitsGroup))
-                                .default_open(true)
-                                .show(ui, |ui| {
-                                    ui.label(self.text(Text::ResizeMode))
-                                        .on_hover_text(self.text(Text::ResizeModeTip));
-                                    ui.horizontal_wrapped(|ui| {
-                                        ui.selectable_value(
-                                            &mut self.resize_mode,
-                                            ResizeUi::Off,
-                                            tr(self.language, Text::ResizeNone),
-                                        );
-                                        ui.selectable_value(
-                                            &mut self.resize_mode,
-                                            ResizeUi::Classic,
-                                            tr(self.language, Text::ResizeClassic),
-                                        );
-                                        ui.selectable_value(
-                                            &mut self.resize_mode,
-                                            ResizeUi::Bounds,
-                                            tr(self.language, Text::ResizeBounds),
-                                        );
-                                    });
-                                    match self.resize_mode {
-                                        ResizeUi::Off => {}
-                                        ResizeUi::Classic => {
-                                            ui.horizontal(|ui| {
-                                                ui.label(self.text(Text::ResizeArgs))
-                                                    .on_hover_text(self.text(Text::ResizeArgsTip));
-                                                ui.add(
-                                                    egui::TextEdit::singleline(
-                                                        &mut self.resize_arg,
-                                                    )
-                                                    .desired_width(220.0)
-                                                    .hint_text("1920x1080 / 720w / @1.5 / 150%"),
-                                                )
-                                                .on_hover_text(self.text(Text::ResizeArgsTip));
-                                            });
-                                            ui.horizontal(|ui| {
-                                                ui.label(self.text(Text::Filter))
-                                                    .on_hover_text(self.text(Text::FilterTip));
-                                                egui::ComboBox::from_id_salt("resize-filter")
-                                                    .selected_text(self.filter.cli_name())
-                                                    .width(200.0)
-                                                    .show_ui(ui, |ui| {
-                                                        for filter in ResizeFilter::ALL {
-                                                            ui.selectable_value(
-                                                                &mut self.filter,
-                                                                filter,
-                                                                filter.cli_name(),
-                                                            );
-                                                        }
-                                                    })
-                                                    .response
-                                                    .on_hover_text(self.text(Text::FilterTip));
-                                            });
-                                        }
-                                        ResizeUi::Bounds => {
-                                            Self::bound_ui(
-                                                ui,
-                                                self.language,
-                                                Text::MinSize,
-                                                &mut self.min_bound,
-                                            );
-                                            Self::bound_ui(
-                                                ui,
-                                                self.language,
-                                                Text::MaxSize,
-                                                &mut self.max_bound,
-                                            );
-                                        }
-                                    }
-                                });
-                            egui::CollapsingHeader::new(self.text(Text::ExecutionGroup))
-                                .default_open(true)
-                                .show(ui, |ui| {
-                                    ui.checkbox(
-                                        &mut self.hidden,
-                                        tr(self.language, Text::HiddenExecute),
-                                    )
-                                    .on_hover_text(self.text(Text::HiddenExecuteTip));
-                                });
-                        });
-                    });
-                ui.separator();
-                let start_size = egui::vec2(ui.available_width(), 48.0);
-                let other_action_size = egui::vec2(ui.available_width(), 38.0);
-                let action_stroke = egui::Stroke::new(2.0_f32, ui.visuals().strong_text_color());
-                if conversion_busy {
-                    if ui
-                        .add_sized(
-                            other_action_size,
-                            egui::Button::new(
-                                egui::RichText::new(self.text(Text::Cancel))
-                                    .size(18.0)
-                                    .strong(),
-                            )
-                            .stroke(action_stroke),
-                        )
-                        .on_hover_text(self.text(Text::CancelTip))
-                        .clicked()
-                        && let Some(worker) = &self.worker
-                    {
-                        worker.cancel();
-                    }
-                } else if ui
-                    .add_enabled_ui(!self.selected.is_empty(), |ui| {
-                        ui.add_sized(
-                            start_size,
-                            egui::Button::new(
-                                egui::RichText::new(self.text(Text::Start))
-                                    .size(18.0)
-                                    .strong(),
-                            )
-                            .stroke(action_stroke),
-                        )
-                    })
-                    .inner
-                    .on_hover_text(self.text(Text::StartTip))
-                    .clicked()
-                {
-                    self.start();
-                }
-            });
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.spacing_mut().item_spacing.x = 14.0;
-            ui.spacing_mut().interact_size.y = 24.0;
-            let file_action_size = egui::vec2(104.0, 28.0);
-            ui.horizontal_wrapped(|ui| {
-                if ui
-                    .add_enabled_ui(!busy, |ui| {
-                        ui.add_sized(
-                            file_action_size,
-                            egui::Button::new(self.text(Text::AddFiles)),
-                        )
-                    })
-                    .inner
-                    .on_hover_text(self.text(Text::AddFilesTip))
-                    .clicked()
-                {
-                    let files = rfd::FileDialog::new().pick_files().unwrap_or_default();
-                    self.begin_scan(files);
-                }
-                if ui
-                    .add_enabled_ui(!busy, |ui| {
-                        ui.add_sized(
-                            file_action_size,
-                            egui::Button::new(self.text(Text::AddFolder)),
-                        )
-                    })
-                    .inner
-                    .on_hover_text(self.text(Text::AddFolderTip))
-                    .clicked()
-                    && let Some(dir) = rfd::FileDialog::new().pick_folder()
-                {
-                    self.begin_scan(vec![dir]);
-                }
-                if ui
-                    .add_enabled_ui(!busy && !self.files.is_empty(), |ui| {
-                        ui.add_sized(
-                            file_action_size,
-                            egui::Button::new(self.text(Text::SelectAll)),
-                        )
-                    })
-                    .inner
-                    .on_hover_text(self.text(Text::SelectAllTip))
-                    .clicked()
-                {
-                    self.selected = (0..self.files.len()).collect();
-                }
-                if ui
-                    .add_enabled_ui(!busy && !self.selected.is_empty(), |ui| {
-                        ui.add_sized(
-                            file_action_size,
-                            egui::Button::new(self.text(Text::DeselectAll)),
-                        )
-                    })
-                    .inner
-                    .on_hover_text(self.text(Text::DeselectAllTip))
-                    .clicked()
-                {
-                    self.selected.clear();
-                }
-                if ui
-                    .add_enabled_ui(!busy && !self.selected.is_empty(), |ui| {
-                        ui.add_sized(file_action_size, egui::Button::new(self.text(Text::Remove)))
-                    })
-                    .inner
-                    .on_hover_text(self.text(Text::RemoveTip))
-                    .clicked()
-                {
-                    self.remove_selected();
-                }
-                if ui
-                    .add_enabled_ui(!busy && !self.files.is_empty(), |ui| {
-                        ui.add_sized(file_action_size, egui::Button::new(self.text(Text::Clear)))
-                    })
-                    .inner
-                    .on_hover_text(self.text(Text::ClearTip))
-                    .clicked()
-                {
-                    self.files.clear();
-                    self.selected.clear();
-                }
-                ui.separator();
-                ui.label(format!(
-                    "{}: {}/{}",
-                    self.text(Text::SelectedCount),
-                    self.selected.len(),
-                    self.files.len()
-                ));
-            });
-            ui.label(self.text(Text::DropHint));
-            let row_height = ui.text_style_height(&egui::TextStyle::Body) + 6.0;
-            // Divide the actual remaining height between the two regions.
-            // Account explicitly for the progress row, labels, separators,
-            // spacing, and both group-frame borders/padding. Without this,
-            // those decorations are added after the split and can push the log
-            // below the viewport when the window is made short.
-            let available = ui.available_height().max(0.0);
-            let fixed_rows = 112.0;
-            let frame_chrome = 16.0;
-            let region_height = (available - fixed_rows).max(0.0);
-            let log_outer_height = (region_height * 0.35).min(250.0);
-            let list_outer_height = (region_height - log_outer_height).max(0.0);
-            let log_height = (log_outer_height - frame_chrome).max(0.0);
-            let list_height = (list_outer_height - frame_chrome).max(0.0);
-            egui::Frame::group(ui.style()).show(ui, |ui| {
-                ui.set_height(list_height);
-                egui::ScrollArea::both()
-                    .id_salt("files")
-                    .auto_shrink([false, false])
-                    .max_height(list_height)
-                    .show_rows(ui, row_height, self.files.len(), |ui, range| {
-                        for i in range {
-                            ui.horizontal(|ui| {
-                                let mut selected = self.selected.contains(&i);
-                                if ui
-                                    .add_enabled(!busy, egui::Checkbox::without_text(&mut selected))
-                                    .changed()
-                                {
-                                    if selected {
-                                        self.selected.insert(i);
-                                    } else {
-                                        self.selected.remove(&i);
-                                    }
-                                }
-                                ui.add(
-                                    egui::Label::new(display_path(&self.files[i]))
-                                        .truncate()
-                                        .selectable(false),
-                                )
-                                .on_hover_text(display_path(&self.files[i]));
-                            });
-                        }
-                    });
-            });
-            ui.separator();
-            ui.horizontal(|ui| {
-                ui.label(format!(
-                    "{}: {}",
-                    self.text(Text::Progress),
-                    self.text(self.status)
-                ));
-                let fraction = if self.total == 0 {
-                    0.0
-                } else {
-                    self.completed as f32 / self.total as f32
-                };
-                let progress_width = ui.available_width().max(80.0);
-                ui.add_sized(
-                    egui::vec2(progress_width, 24.0),
-                    egui::ProgressBar::new(fraction).show_percentage(),
-                );
-            });
-            ui.label(self.text(Text::Log));
-            egui::Frame::group(ui.style()).show(ui, |ui| {
-                ui.set_height(log_height);
-                egui::ScrollArea::both()
-                    .stick_to_bottom(true)
-                    .auto_shrink([false, false])
-                    .max_height(log_height)
-                    .show(ui, |ui| {
-                        for line in &self.logs {
-                            ui.label(line);
-                        }
-                    });
-            });
-        });
+            .exact_width(OPTIONS_WIDTH)
+            .show(ctx, |ui| self.options_panel_ui(ui, busy));
+        // The central panel keeps the same fill as the right options panel so
+        // the window reads as one background. Its frame has no border; only a
+        // small inset keeps the left column content off the window edges.
+        egui::CentralPanel::default()
+            .frame(
+                egui::Frame::new()
+                    .fill(ctx.style().visuals.panel_fill)
+                    .inner_margin(2.0),
+            )
+            .show(ctx, |ui| self.central_panel_ui(ui, busy));
     }
 }
 
@@ -981,7 +1018,10 @@ impl eframe::App for RimageApp {
 mod tests {
     use eframe::egui;
 
-    use super::{adjust_suffix_for_policy, clamped_window_size};
+    use super::{
+        LIST_REGION_MIN_HEIGHT, LOG_REGION_MAX_HEIGHT, LOG_REGION_MIN_HEIGHT, RimageApp,
+        adjust_suffix_for_policy, clamped_window_size, log_region_height,
+    };
     use crate::model::OriginalPolicy;
 
     #[test]
@@ -1019,5 +1059,33 @@ mod tests {
         let (enabled, saved) =
             adjust_suffix_for_policy(Keep, DeleteAfterVerifiedSuccess, true, true);
         assert_eq!((enabled, saved), (true, true));
+    }
+
+    #[test]
+    fn log_region_height_reserves_bounded_share() {
+        // Tall window: the share is capped by the maximum.
+        let capped = log_region_height(2_000.0);
+        assert!((capped - LOG_REGION_MAX_HEIGHT).abs() <= f32::EPSILON);
+        // Medium window: proportional share inside the bounds.
+        let mid = log_region_height(600.0);
+        assert!((LOG_REGION_MIN_HEIGHT..=LOG_REGION_MAX_HEIGHT).contains(&mid));
+        assert!((mid - 210.0).abs() < 1.0);
+        // Short window: the list keeps its minimum slice.
+        let short = log_region_height(100.0);
+        assert!(short <= 100.0 - LIST_REGION_MIN_HEIGHT);
+        // Very short window: the reservation never exceeds what is available.
+        assert!(log_region_height(30.0) <= 30.0);
+    }
+
+    #[test]
+    fn suffix_enabled_returns_to_keep_when_backup_active() {
+        let mut app = RimageApp::default();
+        app.set_suffix_enabled(false);
+        assert!(!app.suffix_enabled);
+
+        app.policy = OriginalPolicy::Backup;
+        app.set_suffix_enabled(true);
+        assert_eq!(app.policy, OriginalPolicy::Keep);
+        assert!(app.suffix_enabled);
     }
 }

@@ -2,7 +2,7 @@
 
 use eframe::egui;
 use rimage_gui::{
-    app::RimageApp,
+    app::{RimageApp, WINDOW_INNER_SIZE, WINDOW_MIN_INNER_SIZE},
     i18n::{Language, Text, tr},
 };
 
@@ -14,10 +14,10 @@ fn main() -> eframe::Result {
     let _ = rimage_gui::backend::extract_backend();
 
     let mut viewport = egui::ViewportBuilder::default()
-        .with_inner_size([1_020.0, 660.0])
+        .with_inner_size(WINDOW_INNER_SIZE)
         // Keep the floor useful but compact. The app performs a monitor-aware
         // clamp again on the first frame.
-        .with_min_inner_size([620.0, 420.0])
+        .with_min_inner_size(WINDOW_MIN_INNER_SIZE)
         .with_clamp_size_to_monitor_size(true);
     if let Some(icon) = load_icon() {
         viewport = viewport.with_icon(icon);

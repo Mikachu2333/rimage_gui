@@ -5,7 +5,8 @@ Windows-only `eframe`/`egui` GUI for [rimage 0.12.5](https://github.com/SalOne22
 ## Features
 
 - Native responsive, high-DPI-aware egui interface.
-- System language, 简体中文, and English UI.
+- UI language follows the system (简体中文 or English); no in-app language
+  switcher.
 - Drag/drop, native file dialogs, recursive background folder scanning, deduplication, and select-all/deselect-all batch list actions. Only the checked files are converted.
 - JPEG (MozJPEG), PNG (OxiPNG), JPEG XL, WebP, and AVIF output.
 - Quality, quantization/dithering, output location, original-file policy, and a custom output suffix. The suffix defaults to `backup` and is appended without a separator, so `a.jpg` becomes `abackup.jpg`.

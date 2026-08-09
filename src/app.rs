@@ -33,9 +33,6 @@ const OPTIONS_WIDTH: f32 = 300.0;
 const ACTION_BUTTON_HEIGHT: f32 = 42.0;
 /// Height of the secondary (cancel) button.
 const OTHER_ACTION_BUTTON_HEIGHT: f32 = 32.0;
-/// Space reserved below the options scroll area for the action buttons,
-/// their separator, and the panel's bottom margin.
-const OPTIONS_BOTTOM_RESERVED: f32 = 70.0;
 
 /// The log region receives this share of the remaining central-panel height.
 const LOG_REGION_SHARE: f32 = 0.35;
@@ -474,10 +471,17 @@ impl RimageApp {
         ui.add_space(4.0);
         ui.heading(self.text(Text::Options));
         ui.add_space(4.0);
-        // Reserve the complete action row, separator, spacing and the panel's
-        // bottom margin so the thick button frame never extends below the
-        // viewport on short windows.
-        let options_height = (ui.available_height() - OPTIONS_BOTTOM_RESERVED).max(0.0);
+        // Pin the action row to the bottom of the panel with its own panel.
+        // Without this isolation, an over-wide scroll content (for example
+        // longer English labels) widens the scroll area itself and would push
+        // the buttons past the window's right edge.
+        egui::TopBottomPanel::bottom("options-actions")
+            .frame(egui::Frame::NONE)
+            .show_inside(ui, |ui| {
+                ui.separator();
+                self.action_buttons_ui(ui, self.worker.is_some());
+            });
+        let options_height = ui.available_height().max(0.0);
         egui::ScrollArea::vertical()
             .id_salt("options-scroll")
             .auto_shrink([false, false])
@@ -501,8 +505,6 @@ impl RimageApp {
                         .show(ui, |ui| self.execution_group_ui(ui));
                 });
             });
-        ui.separator();
-        self.action_buttons_ui(ui, self.worker.is_some());
     }
 
     fn encoding_group_ui(&mut self, ui: &mut egui::Ui) {

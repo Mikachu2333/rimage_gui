@@ -64,4 +64,4 @@ All the available options are explained in detail.
 
 ## Star
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Mikachu2333/rimage_gui&type=Timeline)](https://star-history.com/#Mikachu2333/rimage_gui&Timeline)
+[![Star History Chart](https://star-history.dera.page/svg?repos=Mikachu2333/rimage_gui&type=Timeline)](https://star-history.dera.page/#Mikachu2333/rimage_gui&Timeline)

@@ -2,6 +2,8 @@
 
 Windows-only `eframe`/`egui` GUI for [rimage 0.13.0](https://github.com/SalOne22/rimage).
 
+![en](./en.jpg)
+
 ## Features
 
 - Native responsive, high-DPI-aware egui interface.

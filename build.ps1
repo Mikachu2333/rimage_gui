@@ -25,7 +25,7 @@ $targets = if ($Target -eq "both") {
 
 foreach ($target in $targets) {
     Write-Host "Building $target (release)..."
-    rustup run "stable-$target" cargo build --release --target $target
+    rustup run "stable-$target" cargo build --release --all-features --target $target
 }
 
 if ($SkipUpx) {
@@ -42,8 +42,6 @@ if (-not $upx) {
 foreach ($target in $targets) {
     $exe = Join-Path $PSScriptRoot "target\$target\release\rimage-gui.exe"
     $dist = Join-Path $PSScriptRoot "dist"
-    $new_exe = Join-Path $dist "rimage-gui.exe"
-
 
     if (-not (Test-Path -LiteralPath $exe)) {
         throw "Release binary not found: $exe"

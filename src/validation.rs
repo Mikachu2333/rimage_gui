@@ -162,7 +162,7 @@ pub fn validate_output_paths(job: &JobSpec) -> Result<(), ValidationError> {
 /// maximum are set (rimage cannot express a clamp in one batch invocation).
 pub fn validate_bounds(bounds: SizeBounds) -> Result<(), ValidationError> {
     let positive = |bound: Option<BoundKind>| match bound {
-        Some(BoundKind::LongestEdge(n)) => n > 0,
+        Some(BoundKind::LongestEdge(n) | BoundKind::ShortestEdge(n)) => n > 0,
         None => true,
     };
     if !positive(bounds.min) || !positive(bounds.max) {

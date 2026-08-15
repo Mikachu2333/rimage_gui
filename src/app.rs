@@ -51,6 +51,7 @@ const PROGRESS_BAR_HEIGHT: f32 = 16.0;
 enum BoundUi {
     Disabled,
     Longest,
+    Shortest,
 }
 #[derive(Clone)]
 struct BoundForm {
@@ -70,6 +71,7 @@ impl BoundForm {
         match self.mode {
             BoundUi::Disabled => None,
             BoundUi::Longest => Some(BoundKind::LongestEdge(self.value)),
+            BoundUi::Shortest => Some(BoundKind::ShortestEdge(self.value)),
         }
     }
 }
@@ -155,6 +157,8 @@ pub struct RimageApp {
     filter: ResizeFilter,
     min_bound: BoundForm,
     max_bound: BoundForm,
+    threads_auto: bool,
+    threads: u8,
     hidden: bool,
     worker: Option<WorkerHandle>,
     scan_rx: Option<mpsc::Receiver<Vec<PathBuf>>>,
@@ -188,6 +192,8 @@ impl Default for RimageApp {
             filter: ResizeFilter::default(),
             min_bound: BoundForm::default(),
             max_bound: BoundForm::default(),
+            threads_auto: true,
+            threads: 1,
             hidden: true,
             worker: None,
             scan_rx: None,
@@ -298,6 +304,11 @@ impl RimageApp {
                         min: self.min_bound.value(),
                         max: self.max_bound.value(),
                     }),
+                },
+                threads: if self.threads_auto {
+                    None
+                } else {
+                    Some(self.threads)
                 },
                 hidden: self.hidden,
             },
@@ -434,6 +445,7 @@ impl RimageApp {
                 .selected_text(match bound.mode {
                     BoundUi::Disabled => tr(language, Text::Disabled),
                     BoundUi::Longest => tr(language, Text::LongestEdge),
+                    BoundUi::Shortest => tr(language, Text::ShortestEdge),
                 })
                 .show_ui(ui, |ui| {
                     ui.selectable_value(
@@ -445,6 +457,11 @@ impl RimageApp {
                         &mut bound.mode,
                         BoundUi::Longest,
                         tr(language, Text::LongestEdge),
+                    );
+                    ui.selectable_value(
+                        &mut bound.mode,
+                        BoundUi::Shortest,
+                        tr(language, Text::ShortestEdge),
                     );
                 });
             if bound.mode != BoundUi::Disabled {
@@ -711,6 +728,17 @@ impl RimageApp {
     fn execution_group_ui(&mut self, ui: &mut egui::Ui) {
         ui.checkbox(&mut self.hidden, tr(self.language, Text::HiddenExecute))
             .on_hover_text(self.text(Text::HiddenExecuteTip));
+        ui.horizontal(|ui| {
+            ui.checkbox(&mut self.threads_auto, tr(self.language, Text::AutoThreads))
+                .on_hover_text(self.text(Text::ThreadsTip));
+            if !self.threads_auto {
+                let max = std::thread::available_parallelism().map_or(1, |parallelism| {
+                    u8::try_from(parallelism.get().min(u8::MAX as usize)).unwrap_or(u8::MAX)
+                });
+                ui.add(egui::DragValue::new(&mut self.threads).range(1..=max))
+                    .on_hover_text(self.text(Text::ThreadsTip));
+            }
+        });
     }
 
     fn action_buttons_ui(&mut self, ui: &mut egui::Ui, conversion_busy: bool) {

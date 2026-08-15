@@ -634,6 +634,7 @@ mod tests {
                 output_mode: OutputMode::OriginalDir,
                 original_policy: OriginalPolicy::Keep,
                 resize: ResizeSpec::None,
+                threads: None,
                 hidden: true,
             },
         };

@@ -33,6 +33,7 @@ fn job(format: OutputFormat) -> JobSpec {
             output_mode: OutputMode::SelectedDir("C:\\输出 目录".into()),
             original_policy: OriginalPolicy::Keep,
             resize: ResizeSpec::None,
+            threads: None,
             hidden: true,
         },
     }
@@ -108,6 +109,13 @@ fn bounds_require_single_direction() {
         validate_bounds(SizeBounds {
             min: None,
             max: Some(BoundKind::LongestEdge(400)),
+        })
+        .is_ok()
+    );
+    assert!(
+        validate_bounds(SizeBounds {
+            min: Some(BoundKind::ShortestEdge(300)),
+            max: None,
         })
         .is_ok()
     );
@@ -480,6 +488,7 @@ fn embedded_backend_converts_batch_through_file_list() {
             output_mode: OutputMode::SelectedDir(output_dir.clone()),
             original_policy: OriginalPolicy::Keep,
             resize: ResizeSpec::None,
+            threads: None,
             hidden: true,
         },
     };

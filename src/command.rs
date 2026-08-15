@@ -46,9 +46,10 @@ pub fn build_args(job: &JobSpec, file_list: &Path, metadata: &Path) -> Vec<OsStr
         }
     }
     push_resize_args(&mut args, &options.resize);
+    let threads = options.threads.map_or_else(thread_count, usize::from);
     args.extend([
         OsString::from("--threads"),
-        OsString::from(thread_count().to_string()),
+        OsString::from(threads.to_string()),
         OsString::from("--no-progress"),
         OsString::from("--metadata"),
         metadata.as_os_str().to_owned(),
@@ -62,7 +63,7 @@ pub fn build_args(job: &JobSpec, file_list: &Path, metadata: &Path) -> Vec<OsStr
 #[must_use]
 fn thread_count() -> usize {
     std::thread::available_parallelism()
-        .map_or(1, |parallelism| parallelism.get())
+        .map_or(1, std::num::NonZeroUsize::get)
         .saturating_sub(1)
         .max(1)
 }
@@ -83,8 +84,10 @@ fn push_resize_args(args: &mut Vec<OsString>, resize: &ResizeSpec) {
         }
         ResizeSpec::Bounds(bounds) => {
             let (value, flag) = match (bounds.min, bounds.max) {
-                (Some(BoundKind::LongestEdge(min)), None) => (format!("{min}l"), "--enlarge-only"),
-                (None, Some(BoundKind::LongestEdge(max))) => (format!("{max}l"), "--reduce-only"),
+                (Some(BoundKind::LongestEdge(n)), None) => (format!("{n}l"), "--enlarge-only"),
+                (Some(BoundKind::ShortestEdge(n)), None) => (format!("{n}s"), "--enlarge-only"),
+                (None, Some(BoundKind::LongestEdge(n))) => (format!("{n}l"), "--reduce-only"),
+                (None, Some(BoundKind::ShortestEdge(n))) => (format!("{n}s"), "--reduce-only"),
                 _ => return,
             };
             args.push(OsString::from("--resize"));
@@ -166,6 +169,7 @@ mod tests {
                 output_mode,
                 original_policy: OriginalPolicy::Keep,
                 resize,
+                threads: None,
                 hidden: true,
             },
         }
@@ -231,6 +235,15 @@ mod tests {
     }
 
     #[test]
+    fn manual_threads_override_automatic_value() {
+        let mut spec = job(OutputMode::OriginalDir, ResizeSpec::None);
+        spec.options.threads = Some(3);
+        let text = args_text(&spec);
+        let threads_index = text.iter().position(|arg| arg == "--threads").unwrap();
+        assert_eq!(text[threads_index + 1], "3");
+    }
+
+    #[test]
     fn classic_resize_emits_chained_flags_and_filter() {
         let spec = job(
             OutputMode::OriginalDir,
@@ -265,6 +278,23 @@ mod tests {
         assert!(text.iter().any(|arg| arg == "--resize"));
         assert!(text.iter().any(|arg| arg == "1000l"));
         assert!(text.iter().any(|arg| arg == "--reduce-only"));
+        assert!(text.iter().any(|arg| arg == "--filter"));
+        assert!(text.iter().any(|arg| arg == "lanczos3"));
+    }
+
+    #[test]
+    fn bounds_resize_emits_shortest_edge_enlarge_only() {
+        let spec = job(
+            OutputMode::OriginalDir,
+            ResizeSpec::Bounds(SizeBounds {
+                min: Some(BoundKind::ShortestEdge(500)),
+                max: None,
+            }),
+        );
+        let text = args_text(&spec);
+        assert!(text.iter().any(|arg| arg == "--resize"));
+        assert!(text.iter().any(|arg| arg == "500s"));
+        assert!(text.iter().any(|arg| arg == "--enlarge-only"));
         assert!(text.iter().any(|arg| arg == "--filter"));
         assert!(text.iter().any(|arg| arg == "lanczos3"));
     }

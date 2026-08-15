@@ -111,6 +111,7 @@ pub enum OriginalPolicy {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BoundKind {
     LongestEdge(u32),
+    ShortestEdge(u32),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -129,6 +130,8 @@ pub struct ProcessingOptions {
     pub output_mode: OutputMode,
     pub original_policy: OriginalPolicy,
     pub resize: ResizeSpec,
+    /// Manual `--threads` override; `None` uses the automatic CPU-derived value.
+    pub threads: Option<u8>,
     /// Whether the backend runs with a hidden console window.
     pub hidden: bool,
 }

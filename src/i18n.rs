@@ -53,6 +53,7 @@ pub enum Text {
     MaxSize,
     Disabled,
     LongestEdge,
+    ShortestEdge,
     ResizeMode,
     ResizeNone,
     ResizeClassic,
@@ -120,6 +121,8 @@ pub enum Text {
     ExecutionGroup,
     HiddenExecute,
     HiddenExecuteTip,
+    AutoThreads,
+    ThreadsTip,
 }
 
 #[must_use]
@@ -183,6 +186,8 @@ pub fn tr(language: Language, key: Text) -> &'static str {
         (false, Text::Disabled) => "Disabled",
         (true, Text::LongestEdge) => "最长边",
         (false, Text::LongestEdge) => "Longest edge",
+        (true, Text::ShortestEdge) => "最短边",
+        (false, Text::ShortestEdge) => "Shortest edge",
         (true, Text::ResizeMode) => "缩放方式",
         (false, Text::ResizeMode) => "Resize mode",
         (true, Text::ResizeNone) => "不使用",
@@ -204,10 +209,10 @@ pub fn tr(language: Language, key: Text) -> &'static str {
         (true, Text::FilterTip) => "缩放使用的滤镜，默认 Lanczos3。",
         (false, Text::FilterTip) => "Filter used when resizing; default is Lanczos3.",
         (true, Text::ResizeModeTip) => {
-            "经典参数直接交给 rimage；尺寸限制使用 rimage 原生的最长边放大/缩小（只能选一个方向）。两种方式互斥。"
+            "经典参数直接交给 rimage；尺寸限制使用 rimage 原生的最长边/最短边放大或缩小（只能选一个方向）。两种方式互斥。"
         }
         (false, Text::ResizeModeTip) => {
-            "Classic args are passed to rimage as-is; size limits use rimage's native longest-edge enlarge/reduce (single direction only). The two modes are mutually exclusive."
+            "Classic args are passed to rimage as-is; size limits use rimage's native longest/shortest-edge enlarge or reduce (single direction only). The two modes are mutually exclusive."
         }
         (true, Text::Start) => "开始",
         (false, Text::Start) => "Start",
@@ -369,6 +374,14 @@ pub fn tr(language: Language, key: Text) -> &'static str {
         }
         (false, Text::HiddenExecuteTip) => {
             "When checked, rimage runs hidden in the background; uncheck to watch its console output."
+        }
+        (true, Text::AutoThreads) => "自动线程数",
+        (false, Text::AutoThreads) => "Auto threads",
+        (true, Text::ThreadsTip) => {
+            "勾选时按「系统逻辑 CPU 核数 - 1（最低 1）」自动决定 --threads；取消勾选可手动指定线程数。"
+        }
+        (false, Text::ThreadsTip) => {
+            "When checked, --threads is derived from the logical CPU count minus one (minimum one); uncheck to set it manually."
         }
     }
 }

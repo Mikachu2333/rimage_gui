@@ -55,9 +55,10 @@ pub fn build_args(job: &JobSpec, file: &PreparedFile, metadata: &Path) -> Vec<Os
         }
     }
     if let Some(resize) = &file.resize {
+        for value in &resize.args {
+            args.extend([OsString::from("--resize"), OsString::from(value.clone())]);
+        }
         args.extend([
-            OsString::from("--resize"),
-            OsString::from(resize.arg.clone()),
             OsString::from("--filter"),
             OsString::from(resize.filter.cli_name()),
         ]);
@@ -231,7 +232,7 @@ mod tests {
             input: "C:\\a.jpg".into(),
             output_dir: "C:\\a".into(),
             resize: Some(ResizeTarget {
-                arg: "720w".into(),
+                args: vec!["720w".into()],
                 filter: ResizeFilter::Mitchell,
             }),
         };

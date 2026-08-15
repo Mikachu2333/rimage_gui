@@ -118,14 +118,14 @@ fn validate_resize(resize: &ResizeSpec) -> Result<(), ValidationError> {
     match resize {
         ResizeSpec::None => Ok(()),
         ResizeSpec::Classic { arg, .. } => {
-            normalize_resize_arg(arg)?;
+            split_resize_args(arg)?;
             Ok(())
         }
         ResizeSpec::Bounds(bounds) => validate_bounds(*bounds),
     }
 }
 
-/// Predicts rimage 0.12.5's output path for one input.
+/// Predicts rimage 0.13.0's output path for one input.
 #[must_use]
 pub fn predicted_output_path(input: &Path, job: &JobSpec) -> PathBuf {
     let parent = input.parent().unwrap_or_else(|| Path::new("."));
@@ -262,11 +262,12 @@ fn meets_maximum(width: u32, height: u32, bound: BoundKind) -> bool {
     }
 }
 
-/// Normalizes the classic resize argument accepted by the GUI.
+/// Normalizes a single classic resize argument accepted by the GUI.
 ///
 /// Accepts `@1.5` (multiplier), `150%` (percentage), `1920x1080` (fixed),
-/// `720w`/`720h` (one side, keep aspect), plus the Aardio-style `720x_` and
-/// `720x` spellings which normalize to `720w`.
+/// `720w`/`720h` (one side, keep aspect), `1000l`/`500s` (longest/shortest
+/// side), plus the Aardio-style `720x_` and `720x` spellings which normalize
+/// to `720w`.
 ///
 /// # Errors
 /// Returns `ValidationError::Resize` for unrecognized or non-positive values.
@@ -276,7 +277,7 @@ pub fn normalize_resize_arg(input: &str) -> Result<String, ValidationError> {
         return Err(ValidationError::Resize);
     }
     if let Some(rest) = value.strip_prefix('@') {
-        let factor: f64 = rest.parse().map_err(|_| ValidationError::Resize)?;
+        let factor: f64 = rest.trim().parse().map_err(|_| ValidationError::Resize)?;
         if factor > 0.0 && factor.is_finite() {
             return Ok(format!("@{factor}"));
         }
@@ -291,18 +292,16 @@ pub fn normalize_resize_arg(input: &str) -> Result<String, ValidationError> {
     }
     let lower = value.to_ascii_lowercase();
     if let Some(rest) = lower.strip_suffix('w') {
-        let width: u32 = rest.trim().parse().map_err(|_| ValidationError::Resize)?;
-        if width > 0 {
-            return Ok(format!("{width}w"));
-        }
-        return Err(ValidationError::Resize);
+        return normalize_side(rest, 'w');
     }
     if let Some(rest) = lower.strip_suffix('h') {
-        let height: u32 = rest.trim().parse().map_err(|_| ValidationError::Resize)?;
-        if height > 0 {
-            return Ok(format!("{height}h"));
-        }
-        return Err(ValidationError::Resize);
+        return normalize_side(rest, 'h');
+    }
+    if let Some(rest) = lower.strip_suffix('l') {
+        return normalize_side(rest, 'l');
+    }
+    if let Some(rest) = lower.strip_suffix('s') {
+        return normalize_side(rest, 's');
     }
     if let Some((width_part, height_part)) = lower.split_once('x') {
         let width: u32 = width_part
@@ -325,6 +324,30 @@ pub fn normalize_resize_arg(input: &str) -> Result<String, ValidationError> {
     Err(ValidationError::Resize)
 }
 
+/// Normalizes a resize value anchored to one side (`w`, `h`, `l`, or `s`).
+/// The digits must form a positive integer; anything else is rejected instead
+/// of silently extracting the leading number.
+fn normalize_side(digits: &str, marker: char) -> Result<String, ValidationError> {
+    let length: u32 = digits.trim().parse().map_err(|_| ValidationError::Resize)?;
+    if length == 0 {
+        return Err(ValidationError::Resize);
+    }
+    Ok(format!("{length}{marker}"))
+}
+
+/// Splits a possibly-chained resize argument on whitespace and normalizes each
+/// value. A blank chain or any invalid value is rejected.
+///
+/// # Errors
+/// Returns `ValidationError::Resize` for a blank chain or an invalid value.
+pub fn split_resize_args(input: &str) -> Result<Vec<String>, ValidationError> {
+    let values = input.split_whitespace().collect::<Vec<_>>();
+    if values.is_empty() {
+        return Err(ValidationError::Resize);
+    }
+    values.into_iter().map(normalize_resize_arg).collect()
+}
+
 /// # Errors
 /// Returns an error when image dimensions cannot be read or bounds conflict.
 pub fn prepare_file(input: &Path, job: &JobSpec) -> Result<PreparedFile, ValidationError> {
@@ -337,7 +360,7 @@ pub fn prepare_file(input: &Path, job: &JobSpec) -> Result<PreparedFile, Validat
     let resize = match &job.options.resize {
         ResizeSpec::None => None,
         ResizeSpec::Classic { arg, filter } => Some(ResizeTarget {
-            arg: normalize_resize_arg(arg)?,
+            args: split_resize_args(arg)?,
             filter: *filter,
         }),
         ResizeSpec::Bounds(bounds) => {
@@ -345,7 +368,7 @@ pub fn prepare_file(input: &Path, job: &JobSpec) -> Result<PreparedFile, Validat
                 .map_err(|_| ValidationError::Dimensions(input.to_path_buf()))?;
             match calculate_resize(width, height, *bounds) {
                 Ok(Some((width, height))) => Some(ResizeTarget {
-                    arg: format!("{width}x{height}"),
+                    args: vec![format!("{width}x{height}")],
                     filter: ResizeFilter::default(),
                 }),
                 Ok(None) => None,

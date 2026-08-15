@@ -332,11 +332,23 @@ impl RimageApp {
         }
     }
     fn poll(&mut self, ctx: &egui::Context) {
-        if let Some(rx) = &self.scan_rx
-            && let Ok(paths) = rx.try_recv()
-        {
-            self.scan_rx = None;
-            self.merge_scanned(paths);
+        if let Some(rx) = &self.scan_rx {
+            match rx.try_recv() {
+                Ok(paths) => {
+                    self.scan_rx = None;
+                    self.merge_scanned(paths);
+                }
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                    // The scan thread dropped its sender without delivering a
+                    // result (for example it panicked). Do not stay stuck in
+                    // the Scanning state.
+                    self.scan_rx = None;
+                    if self.status == Text::Scanning {
+                        self.status = Text::Idle;
+                    }
+                }
+                Err(std::sync::mpsc::TryRecvError::Empty) => {}
+            }
         }
         let events: Vec<_> = self.worker.as_ref().map_or_else(Vec::new, |worker| {
             worker.events.try_iter().take(128).collect()
@@ -699,7 +711,7 @@ impl RimageApp {
                     ui.add(
                         egui::TextEdit::singleline(&mut self.resize_arg)
                             .desired_width(180.0)
-                            .hint_text("1920x1080 / 720w / @1.5 / 150%"),
+                            .hint_text("1920x1080 / 720w / 1000l / 500s / @1.5 / 150%"),
                     )
                     .on_hover_text(self.text(Text::ResizeArgsTip));
                 });

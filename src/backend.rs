@@ -141,7 +141,7 @@ pub fn extract_backend() -> Result<PathBuf, BackendError> {
         if file_digest(&temp)? != expected {
             return Err(BackendError::Hash);
         }
-        publish_backend(&temp, &target)?;
+        publish_backend(&temp, &target, &expected)?;
         Ok(())
     })();
     if result.is_err() {
@@ -171,7 +171,7 @@ fn create_unique_temp(dir: &Path) -> std::io::Result<(PathBuf, fs::File)> {
 
 #[cfg(windows)]
 #[allow(unsafe_code)]
-fn publish_backend(source: &Path, target: &Path) -> std::io::Result<()> {
+fn publish_backend(source: &Path, target: &Path, expected: &[u8; 32]) -> std::io::Result<()> {
     use std::{iter, os::windows::ffi::OsStrExt, ptr};
 
     #[link(name = "kernel32")]
@@ -190,7 +190,7 @@ fn publish_backend(source: &Path, target: &Path) -> std::io::Result<()> {
         return match fs::rename(source, target) {
             Ok(()) => Ok(()),
             Err(error) if target.exists() => {
-                if file_digest(target)? == digest(BACKEND_BYTES) {
+                if file_digest(target)? == *expected {
                     fs::remove_file(source)
                 } else {
                     Err(error)
@@ -220,7 +220,7 @@ fn publish_backend(source: &Path, target: &Path) -> std::io::Result<()> {
         )
     };
     if replaced == 0 {
-        if file_digest(target)? == digest(BACKEND_BYTES) {
+        if file_digest(target)? == *expected {
             fs::remove_file(source)
         } else {
             Err(std::io::Error::last_os_error())
@@ -231,7 +231,7 @@ fn publish_backend(source: &Path, target: &Path) -> std::io::Result<()> {
 }
 
 #[cfg(not(windows))]
-fn publish_backend(source: &Path, target: &Path) -> std::io::Result<()> {
+fn publish_backend(source: &Path, target: &Path, _expected: &[u8; 32]) -> std::io::Result<()> {
     fs::rename(source, target)
 }
 
@@ -253,7 +253,7 @@ pub fn verify_backend(path: &Path) -> Result<(), BackendError> {
     hidden(&mut command);
     let output = command.output()?;
     let text = String::from_utf8_lossy(&output.stdout).trim().to_owned();
-    if output.status.success() && text.contains("rimage 0.12.5") {
+    if output.status.success() && text.contains("rimage 0.13.0") {
         Ok(())
     } else {
         Err(BackendError::Version(text))
@@ -363,13 +363,14 @@ fn run_job(job: JobSpec, cancel: Arc<AtomicBool>, tx: Sender<WorkerEvent>) {
                 continue;
             }
         };
-        let mut readers = Vec::with_capacity(2);
-        if let Some(stdout) = child.stdout.take() {
-            readers.push(spawn_output_reader(stdout, tx.clone()));
-        }
-        if let Some(stderr) = child.stderr.take() {
-            readers.push(spawn_output_reader(stderr, tx.clone()));
-        }
+        let stdout_reader = child
+            .stdout
+            .take()
+            .map(|stdout| spawn_output_reader(stdout, tx.clone()));
+        let stderr_reader = child
+            .stderr
+            .take()
+            .map(|stderr| spawn_output_reader(stderr, tx.clone()));
         let status = loop {
             if cancel.load(Ordering::Acquire) {
                 let _ = child.kill();
@@ -381,12 +382,10 @@ fn run_job(job: JobSpec, cancel: Arc<AtomicBool>, tx: Sender<WorkerEvent>) {
                 Err(error) => break Err(error),
             }
         };
-        let mut diagnostics = Vec::with_capacity(2);
-        for reader in readers {
-            diagnostics.push(reader.join().unwrap_or_default());
-        }
-        let stdout_tail = diagnostics.first().map_or("", String::as_str);
-        let stderr_tail = diagnostics.get(1).map_or("", String::as_str);
+        let stdout_tail =
+            stdout_reader.map_or_else(String::new, |reader| reader.join().unwrap_or_default());
+        let stderr_tail =
+            stderr_reader.map_or_else(String::new, |reader| reader.join().unwrap_or_default());
         let cancelled = cancel.load(Ordering::Acquire);
         let status_success = status.as_ref().is_ok_and(std::process::ExitStatus::success);
         let outputs = if status_success {
@@ -400,8 +399,8 @@ fn run_job(job: JobSpec, cancel: Arc<AtomicBool>, tx: Sender<WorkerEvent>) {
             &file.input,
             job.options.original_policy,
             cancelled,
-            stdout_tail,
-            stderr_tail,
+            &stdout_tail,
+            &stderr_tail,
         );
         match result {
             Ok(output) => {
@@ -524,7 +523,11 @@ fn verify_result(
         return Err("conversion was cancelled".into());
     }
     if !status_success {
-        return Err("rimage exited with a failure".into());
+        return Err(diagnostic_failure(
+            "rimage exited with a failure",
+            stdout_tail,
+            stderr_tail,
+        ));
     }
     let Some(outputs) = outputs else {
         return Err(diagnostic_failure(
@@ -559,7 +562,9 @@ mod tests {
 
     use crossbeam_channel::bounded;
 
-    use super::{MAX_DIAGNOSTIC_BYTES, WorkerEvent, diagnostic_failure, spawn_output_reader};
+    use super::{
+        MAX_DIAGNOSTIC_BYTES, WorkerEvent, diagnostic_failure, spawn_output_reader, verify_result,
+    };
 
     #[test]
     fn output_reader_bounds_an_unbroken_stream() {
@@ -590,6 +595,23 @@ mod tests {
                 ""
             ),
             "rimage did not produce usable metadata; diagnostic: stdout detail"
+        );
+    }
+
+    #[test]
+    fn process_failure_includes_bounded_stderr_diagnostic() {
+        let result = verify_result(
+            false,
+            None,
+            std::path::Path::new("C:\\in.jpg"),
+            crate::model::OriginalPolicy::Keep,
+            false,
+            "stdout detail",
+            "encoder failed",
+        );
+        assert_eq!(
+            result.unwrap_err(),
+            "rimage exited with a failure; diagnostic: encoder failed"
         );
     }
 }

@@ -1,6 +1,6 @@
 # Rimage GUI
 
-Windows-only `eframe`/`egui` GUI for [rimage 0.12.5](https://github.com/SalOne22/rimage).
+Windows-only `eframe`/`egui` GUI for [rimage 0.13.0](https://github.com/SalOne22/rimage).
 
 ## Features
 
@@ -9,8 +9,8 @@ Windows-only `eframe`/`egui` GUI for [rimage 0.12.5](https://github.com/SalOne22
   switcher.
 - Drag/drop, native file dialogs, recursive background folder scanning, deduplication, and select-all/deselect-all batch list actions. Only the checked files are converted.
 - JPEG (MozJPEG), PNG (OxiPNG), JPEG XL, WebP, and AVIF output.
-- Quality, quantization/dithering, output location, original-file policy, and a custom output suffix. The suffix defaults to `backup` and is appended without a separator, so `a.jpg` becomes `abackup.jpg`.
-- Classic rimage resize arguments (`@1.5`, `150%`, `1920x1080`, `720w`/`720h`; Aardio-style `720x_` is normalized to `720w`) with a selectable filter (`nearest`, `box`, `bilinear`, `hamming`, `catmull-rom`, `mitchell`, `lanczos3`), or aspect-ratio-preserving minimum/maximum size constraints as an alternative mode. The two resize modes are mutually exclusive.
+- Quality, quantization/dithering, output location, original-file policy, and a custom output suffix. The suffix defaults to `_new` and is appended without a separator, so `a.jpg` becomes `a_new.jpg`.
+- Classic rimage resize arguments (`@1.5`, `150%`, `1920x1080`, `720w`/`720h`, `1000l`/`500s`; Aardio-style `720x_` is normalized to `720w`) with a selectable filter (`nearest`, `box`, `bilinear`, `hamming`, `catmull-rom`, `mitchell`, `lanczos3`), or aspect-ratio-preserving minimum/maximum size constraints as an alternative mode. Classic arguments may be chained by separating several values with spaces; each value is emitted as its own `--resize` flag so rimage maps it against the size the previous value produced. The two resize modes are mutually exclusive.
 - Backup original-file policy is linked with the suffix: selecting Backup closes the suffix, leaving Backup restores its previous state, and re-checking the suffix while Backup is active switches the policy back to Keep.
 - Hidden-execution toggle for the rimage console window.
 - Serial conversion: exactly one input file per rimage process, always with `--threads 1`. A background worker keeps the GUI responsive, and cancellation stops the current file and skips the rest.
@@ -23,7 +23,7 @@ Builds embed exactly one backend according to the target architecture:
 - `i686-pc-windows-msvc`: `res/rimage_x86.exe`
 - `x86_64-pc-windows-msvc`: `res/rimage_x64.exe`
 
-Both must report `rimage 0.12.5`. The backend is extracted to the current user's cache using a version/architecture directory, SHA-256 verification, and a temporary-file rename. It is never written beside the GUI executable.
+Both must report `rimage 0.13.0`. The backend is extracted to the current user's cache using a version/architecture directory, SHA-256 verification, and a temporary-file rename. It is never written beside the GUI executable.
 
 ## Build
 
@@ -57,7 +57,7 @@ rustup run stable-x86_64-pc-windows-msvc cargo test --workspace --all-features -
 
 `Delete after verified success` is conservative: rimage metadata must identify the current input and actual output; the process must succeed; the output must exist, be non-empty, and differ from the input; and cancellation must not have been requested. Otherwise the input remains untouched.
 
-The Backup option passes rimage's `--backup`. Under rimage 0.12.5 the original
+The Backup option passes rimage's `--backup`. Under rimage 0.13.0 the original
 input is preserved as a `stem@backup.ext` hard link (the original path no
 longer holds it) and the converted file is written to the output location; in
 the input directory the input path is replaced in place. Because an explicit

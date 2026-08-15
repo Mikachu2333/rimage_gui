@@ -11,10 +11,16 @@ use rimage_gui::{
     },
     validation::{
         ValidationError, calculate_resize, normalize_resize_arg, path_key, predicted_output_path,
-        prepare_job_files, reject_unsafe_delete, safe_to_delete, valid_component, validate_bounds,
-        validate_job, validate_output_paths,
+        prepare_job_files, reject_unsafe_delete, safe_to_delete, split_resize_args,
+        valid_component, validate_bounds, validate_job, validate_output_paths,
     },
 };
+
+/// Directory holding the committed image fixtures. They are converted once
+/// from the Windows wallpaper with ffmpeg and then reused by every test.
+const FIXTURE_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), r"\tests\fixtures");
+/// The reusable fixture batch, one file per input format.
+const FIXTURE_NAMES: [&str; 3] = ["sample-jpeg.jpg", "sample-png.png", "sample-webp.webp"];
 
 fn job(format: OutputFormat) -> JobSpec {
     JobSpec {
@@ -73,7 +79,7 @@ fn argv_is_structured_and_contains_expected_options() {
         input: j.files[0].clone(),
         output_dir: "C:\\输出 目录".into(),
         resize: Some(ResizeTarget {
-            arg: "800x600".into(),
+            args: vec!["800x600".into()],
             filter: ResizeFilter::Lanczos3,
         }),
     };
@@ -217,13 +223,78 @@ fn resize_arg_normalizes_aardio_formats() {
     assert_eq!(normalize_resize_arg("720x").unwrap(), "720w");
     assert_eq!(normalize_resize_arg("720w").unwrap(), "720w");
     assert_eq!(normalize_resize_arg("720h").unwrap(), "720h");
-    for bad in ["", "abc", "0", "0x100", "x1080", "-5%", "1.5"] {
+    for bad in [
+        "", "abc", "0", "0x100", "x1080", "-5%", "1.5", "1.5w", "abc100w",
+    ] {
         assert_eq!(
             normalize_resize_arg(bad),
             Err(ValidationError::Resize),
             "{bad}"
         );
     }
+}
+
+#[test]
+fn resize_arg_normalizes_side_anchors_and_chains() {
+    assert_eq!(normalize_resize_arg("1000l").unwrap(), "1000l");
+    assert_eq!(normalize_resize_arg("500s").unwrap(), "500s");
+    assert_eq!(normalize_resize_arg("1000L").unwrap(), "1000l");
+    assert_eq!(normalize_resize_arg("500S").unwrap(), "500s");
+    for bad in ["0l", "0s", "1.5l", "abc100s", "200l300", "100l50s"] {
+        assert_eq!(
+            normalize_resize_arg(bad),
+            Err(ValidationError::Resize),
+            "{bad}"
+        );
+    }
+
+    assert_eq!(
+        split_resize_args("100x400 200s").unwrap(),
+        ["100x400", "200s"]
+    );
+    assert_eq!(split_resize_args("1000l   50%").unwrap(), ["1000l", "50%"]);
+    assert_eq!(
+        split_resize_args("2000l 50% 720x_").unwrap(),
+        ["2000l", "50%", "720w"]
+    );
+    assert_eq!(split_resize_args(""), Err(ValidationError::Resize));
+    assert_eq!(
+        split_resize_args("100x400 bogus"),
+        Err(ValidationError::Resize)
+    );
+}
+
+#[test]
+fn chained_resize_emits_one_flag_per_value_in_order() {
+    let mut j = job(OutputFormat::Jpeg);
+    j.options.suffix = None;
+    let p = PreparedFile {
+        input: j.files[0].clone(),
+        output_dir: "C:\\输出 目录".into(),
+        resize: Some(ResizeTarget {
+            args: vec!["100x400".into(), "200s".into()],
+            filter: ResizeFilter::Lanczos3,
+        }),
+    };
+    let args = build_args(&j, &p, std::path::Path::new("C:\\元 数据.json"));
+    let resize_flags: Vec<&std::ffi::OsStr> = args
+        .iter()
+        .map(std::ffi::OsString::as_os_str)
+        .filter(|arg| *arg == "--resize")
+        .collect();
+    assert_eq!(resize_flags.len(), 2);
+    let first = args
+        .iter()
+        .position(|arg| arg == "--resize")
+        .expect("first resize flag");
+    assert_eq!(args[first + 1], OsString::from("100x400"));
+    assert_eq!(args[first + 2], OsString::from("--resize"));
+    assert_eq!(args[first + 3], OsString::from("200s"));
+    let filter = args
+        .iter()
+        .position(|arg| arg == "--filter")
+        .expect("filter flag");
+    assert_eq!(args[filter + 1], OsString::from("lanczos3"));
 }
 
 #[test]
@@ -280,8 +351,8 @@ fn classic_resize_skips_dimension_reading() {
     };
     let prepared = prepare_job_files(&spec).unwrap();
     assert_eq!(
-        prepared[0].resize.as_ref().map(|r| r.arg.as_str()),
-        Some("720w")
+        prepared[0].resize.as_ref().map(|r| r.args.as_slice()),
+        Some(&["720w".to_string()][..])
     );
     assert_eq!(
         prepared[0].resize.as_ref().map(|r| r.filter),
@@ -469,18 +540,26 @@ fn embedded_backend_converts_each_image_serially() {
     verify_backend(&backend).expect("embedded backend should report the supported version");
 
     let dir = tempfile::tempdir().unwrap();
-    let inputs: Vec<std::path::PathBuf> = (0..3)
-        .map(|i| dir.path().join(format!("输入 图片 {i}.png")))
+    let inputs: Vec<std::path::PathBuf> = FIXTURE_NAMES
+        .iter()
+        .map(|name| {
+            let source = std::path::Path::new(FIXTURE_DIR).join(name);
+            assert!(
+                source.is_file(),
+                "missing test fixture: {}",
+                source.display()
+            );
+            let input = dir.path().join(name);
+            fs::copy(&source, &input).unwrap_or_else(|error| {
+                panic!(
+                    "failed to copy test fixture {} to {}: {error}",
+                    source.display(),
+                    input.display()
+                )
+            });
+            input
+        })
         .collect();
-    for (index, input) in inputs.iter().enumerate() {
-        image::RgbImage::from_pixel(
-            3 + u32::try_from(index).expect("test index fits in u32"),
-            2,
-            image::Rgb([32, 128, 224]),
-        )
-        .save(input)
-        .unwrap();
-    }
     let output_dir = dir.path().join("输出 folder");
 
     let conversion = JobSpec {
@@ -533,9 +612,10 @@ fn embedded_backend_converts_each_image_serially() {
 
     assert_eq!(started, 3);
     assert_eq!(successful_outputs.len(), 3);
-    for (index, input) in inputs.iter().enumerate() {
+    for input in &inputs {
+        let stem = input.file_stem().unwrap().to_string_lossy();
         let expected = output_dir
-            .join(format!("输入 图片 {index}verified.png"))
+            .join(format!("{stem}verified.png"))
             .canonicalize()
             .unwrap();
         let (actual_input, output) = successful_outputs

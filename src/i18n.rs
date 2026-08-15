@@ -204,10 +204,10 @@ pub fn tr(language: Language, key: Text) -> &'static str {
         (true, Text::ResizeArgs) => "参数",
         (false, Text::ResizeArgs) => "Argument",
         (true, Text::ResizeArgsTip) => {
-            "传给 rimage 的原始缩放参数：\n@1.5 倍数、150% 百分比、1920x1080 固定宽高、720w/720h 指定一边按比例缩放。兼容 720x_ 并自动规范为 720w。"
+            "传给 rimage 的原始缩放参数，可用空格串联多个步骤（按顺序组合）：\n@1.5 倍数、150% 百分比、1920x1080 固定宽高、720w/720h 指定一边、1000l/500s 指定最长/最短边。兼容 720x_ 并自动规范为 720w。"
         }
         (false, Text::ResizeArgsTip) => {
-            "Raw resize argument passed to rimage:\n@1.5 multiplier, 150% percentage, 1920x1080 fixed, 720w/720h one-side keep-aspect. Aardio-style 720x_ is normalized to 720w."
+            "Raw resize arguments passed to rimage; separate steps with spaces to chain them in order:\n@1.5 multiplier, 150% percentage, 1920x1080 fixed, 720w/720h one-side, 1000l/500s longest/shortest side. Aardio-style 720x_ is normalized to 720w."
         }
         (true, Text::Filter) => "缩放滤镜",
         (false, Text::Filter) => "Filter",
@@ -277,7 +277,7 @@ pub fn tr(language: Language, key: Text) -> &'static str {
             "自定义输出文件名后缀，默认 _new；输出名直接拼接在原名后（无分隔符），如 a.jpg → a_new.jpg。与“创建 @backup 备份”策略联动：选择备份会自动关闭后缀，勾选后缀会自动切换回“保留”策略。"
         }
         (false, Text::SuffixTip) => {
-            "Custom output-name suffix, default backup; output is stemsuffix.ext with no separator, e.g. a.jpg → abackup.jpg. Linked with the @backup policy: selecting Backup disables it, and checking it switches the policy back to Keep."
+            "Custom output-name suffix, default _new; output is stemsuffix.ext with no separator, e.g. a.jpg → a_new.jpg. Linked with the @backup policy: selecting Backup disables it, and checking it switches the policy back to Keep."
         }
         (true, Text::SuffixBackupHint) => "备份策略已接管后缀，勾选将自动切换为“保留”。",
         (false, Text::SuffixBackupHint) => {

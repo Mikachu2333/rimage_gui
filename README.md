@@ -1,5 +1,7 @@
 # Rimage GUI
 
+[ENG](/README_EN.md)
+
 基于 `eframe`/`egui` 的 Windows 图形界面，封装 [rimage 0.13.0](https://github.com/SalOne22/rimage)，用于批量图像优化与格式转换。
 
 ## 功能特性

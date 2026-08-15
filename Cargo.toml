@@ -1,8 +1,7 @@
 [package]
 name = "rimage-gui"
-version = "0.1.0"
+version = "3.0.0"
 edition = "2024"
-rust-version = "1.85"
 description = "Windows GUI for rimage"
 license = "MIT"
 build = "build.rs"

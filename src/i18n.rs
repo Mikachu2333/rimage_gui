@@ -44,7 +44,6 @@ pub enum Text {
     OutputMode,
     OriginalDir,
     SelectedDir,
-    Subfolder,
     Browse,
     OriginalPolicy,
     Keep,
@@ -54,7 +53,6 @@ pub enum Text {
     MaxSize,
     Disabled,
     LongestEdge,
-    WidthHeight,
     ResizeMode,
     ResizeNone,
     ResizeClassic,
@@ -87,7 +85,6 @@ pub enum Text {
     OutputModeTip,
     OriginalDirTip,
     SelectedDirTip,
-    SubfolderTip,
     KeepTip,
     AddFilesTip,
     AddFolderTip,
@@ -109,12 +106,9 @@ pub enum Text {
     ErrorQuantization,
     ErrorDithering,
     ErrorSuffix,
-    ErrorSubfolder,
     ErrorOutputDirectory,
     ErrorSizeBounds,
     ErrorResize,
-    ErrorDimensions,
-    ErrorDimensionsConflict,
     ErrorUnsafeDelete,
     ErrorDuplicateOutput,
     ErrorOutputOverwritesInput,
@@ -171,8 +165,6 @@ pub fn tr(language: Language, key: Text) -> &'static str {
         (false, Text::OriginalDir) => "Original directory",
         (true, Text::SelectedDir) => "指定目录",
         (false, Text::SelectedDir) => "Selected directory",
-        (true, Text::Subfolder) => "原目录子文件夹",
-        (false, Text::Subfolder) => "Subfolder beside input",
         (true, Text::Browse) => "浏览",
         (false, Text::Browse) => "Browse",
         (true, Text::OriginalPolicy | Text::OriginalFilesGroup) => "原件处理",
@@ -191,8 +183,6 @@ pub fn tr(language: Language, key: Text) -> &'static str {
         (false, Text::Disabled) => "Disabled",
         (true, Text::LongestEdge) => "最长边",
         (false, Text::LongestEdge) => "Longest edge",
-        (true, Text::WidthHeight) => "宽 × 高",
-        (false, Text::WidthHeight) => "Width × height",
         (true, Text::ResizeMode) => "缩放方式",
         (false, Text::ResizeMode) => "Resize mode",
         (true, Text::ResizeNone) => "不使用",
@@ -214,10 +204,10 @@ pub fn tr(language: Language, key: Text) -> &'static str {
         (true, Text::FilterTip) => "缩放使用的滤镜，默认 Lanczos3。",
         (false, Text::FilterTip) => "Filter used when resizing; default is Lanczos3.",
         (true, Text::ResizeModeTip) => {
-            "经典参数直接交给 rimage；尺寸限制按宽高比自动计算目标尺寸。两种方式互斥。"
+            "经典参数直接交给 rimage；尺寸限制使用 rimage 原生的最长边放大/缩小（只能选一个方向）。两种方式互斥。"
         }
         (false, Text::ResizeModeTip) => {
-            "Classic args are passed to rimage as-is; size limits compute an aspect-preserving target. The two modes are mutually exclusive."
+            "Classic args are passed to rimage as-is; size limits use rimage's native longest-edge enlarge/reduce (single direction only). The two modes are mutually exclusive."
         }
         (true, Text::Start) => "开始",
         (false, Text::Start) => "Start",
@@ -254,10 +244,10 @@ pub fn tr(language: Language, key: Text) -> &'static str {
             "Deletes only after matching metadata, a non-empty distinct output, and no cancellation."
         }
         (true, Text::SizeTip) => {
-            "保持宽高比。最小限制只放大，最大限制只缩小；冲突时整批不会启动。使用默认 Lanczos3。"
+            "保持宽高比。最小限制只放大、最大限制只缩小；两者只能选一个，不能同时设置。使用默认 Lanczos3。"
         }
         (false, Text::SizeTip) => {
-            "Preserves aspect ratio. Minimum only enlarges and maximum only shrinks; a conflict prevents the whole batch from starting. Uses default Lanczos3."
+            "Preserves aspect ratio. Minimum only enlarges and maximum only shrinks; set exactly one of them. Uses default Lanczos3."
         }
         (true, Text::FormatTip) => "选择输出编码格式；JPEG 使用 MozJPEG，PNG 使用 OxiPNG。",
         (false, Text::FormatTip) => {
@@ -291,8 +281,6 @@ pub fn tr(language: Language, key: Text) -> &'static str {
         (false, Text::SelectedDirTip) => {
             "Write all outputs to one selected directory; name collisions are rejected before start."
         }
-        (true, Text::SubfolderTip) => "在每张输入图片旁创建指定子文件夹并输出。",
-        (false, Text::SubfolderTip) => "Write into a named subfolder beside each input image.",
         (true, Text::KeepTip) => "保留输入文件，不创建额外备份。",
         (false, Text::KeepTip) => "Keep the input file without creating an extra backup.",
         (true, Text::AddFilesTip) => "选择一个或多个图片文件；新增项目默认选中。",
@@ -345,20 +333,14 @@ pub fn tr(language: Language, key: Text) -> &'static str {
         }
         (true, Text::ErrorSuffix) => "输出后缀无效。",
         (false, Text::ErrorSuffix) => "The output suffix is invalid.",
-        (true, Text::ErrorSubfolder) => "子文件夹名称无效。",
-        (false, Text::ErrorSubfolder) => "The subfolder name is invalid.",
         (true, Text::ErrorOutputDirectory) => "请选择输出目录。",
         (false, Text::ErrorOutputDirectory) => "Select an output directory.",
-        (true, Text::ErrorSizeBounds) => "尺寸限制必须为正数且彼此可满足。",
-        (false, Text::ErrorSizeBounds) => "Size bounds must be positive and mutually satisfiable.",
+        (true, Text::ErrorSizeBounds) => "尺寸限制必须为正数，且只能设置最小或最大其中之一。",
+        (false, Text::ErrorSizeBounds) => {
+            "Size bounds must be positive and may only set one of minimum or maximum."
+        }
         (true, Text::ErrorResize) => "缩放参数无效。",
         (false, Text::ErrorResize) => "The resize argument is invalid.",
-        (true, Text::ErrorDimensions) => "无法读取图像尺寸",
-        (false, Text::ErrorDimensions) => "Cannot read image dimensions",
-        (true, Text::ErrorDimensionsConflict) => "此图片的最小/最大尺寸限制互相冲突",
-        (false, Text::ErrorDimensionsConflict) => {
-            "Minimum and maximum size bounds conflict for this image"
-        }
         (true, Text::ErrorUnsafeDelete) => "删除模式不能让输出与输入为同一路径。",
         (false, Text::ErrorUnsafeDelete) => "Delete mode cannot use the input as its output.",
         (true, Text::ErrorDuplicateOutput) => "多个输入会写入同一输出",
@@ -403,12 +385,9 @@ pub fn validation_message(
         ValidationError::Quantization => (Text::ErrorQuantization, None),
         ValidationError::Dithering => (Text::ErrorDithering, None),
         ValidationError::Suffix => (Text::ErrorSuffix, None),
-        ValidationError::Subfolder => (Text::ErrorSubfolder, None),
         ValidationError::OutputDirectory => (Text::ErrorOutputDirectory, None),
         ValidationError::SizeBounds => (Text::ErrorSizeBounds, None),
         ValidationError::Resize => (Text::ErrorResize, None),
-        ValidationError::Dimensions(path) => (Text::ErrorDimensions, Some(path)),
-        ValidationError::DimensionsConflict(path) => (Text::ErrorDimensionsConflict, Some(path)),
         ValidationError::UnsafeDelete => (Text::ErrorUnsafeDelete, None),
         ValidationError::DuplicateOutput(path) => (Text::ErrorDuplicateOutput, Some(path)),
         ValidationError::OutputOverwritesInput(path) => {

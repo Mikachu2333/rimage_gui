@@ -17,9 +17,9 @@ use thiserror::Error;
 
 use crate::{
     command::{build_args, format_command_line},
-    metadata::load_output_map,
+    metadata::{load_output_map, path_key},
     model::{JobSpec, OriginalPolicy},
-    validation::{prepare_job_files, safe_to_delete, validate_job},
+    validation::{predicted_output_path, safe_to_delete, validate_job},
 };
 
 #[cfg(target_arch = "x86")]
@@ -283,15 +283,6 @@ fn run_job(job: JobSpec, cancel: Arc<AtomicBool>, tx: Sender<WorkerEvent>) {
         abort_job(&job, &message, &tx);
         return;
     }
-    let prepared_files = match prepare_job_files(&job) {
-        Ok(files) => files,
-        Err(error) => {
-            let message = error.to_string();
-            let _ = tx.send(WorkerEvent::ValidationFailed(error));
-            abort_job(&job, &message, &tx);
-            return;
-        }
-    };
     let backend = match extract_backend().and_then(|path| {
         verify_backend(&path)?;
         Ok(path)
@@ -304,127 +295,155 @@ fn run_job(job: JobSpec, cancel: Arc<AtomicBool>, tx: Sender<WorkerEvent>) {
             return;
         }
     };
+
+    // rimage reads inputs from a file literally named `file.list`, so keep the
+    // list inside a dedicated temporary directory and pass that file as the
+    // single positional argument.
+    let list_dir = match tempfile::Builder::new()
+        .prefix("rimage-gui-list-")
+        .tempdir()
+    {
+        Ok(dir) => dir,
+        Err(error) => {
+            let message = error.to_string();
+            let _ = tx.send(WorkerEvent::Log(message.clone()));
+            abort_job(&job, &message, &tx);
+            return;
+        }
+    };
+    let file_list = list_dir.path().join("file.list");
+    let list_content = job
+        .files
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect::<Vec<_>>()
+        .join("\n");
+    if let Err(error) = fs::write(&file_list, list_content) {
+        let message = error.to_string();
+        let _ = tx.send(WorkerEvent::Log(message.clone()));
+        abort_job(&job, &message, &tx);
+        return;
+    }
+    let metadata_path = list_dir.path().join("metadata.json");
+
+    let args = build_args(&job, &file_list, &metadata_path);
+    let command_line = format_command_line(&backend, &args);
+    let mut command = Command::new(&backend);
+    command
+        .args(&args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    if job.options.hidden {
+        hidden(&mut command);
+    }
+    let mut child = match command.spawn() {
+        Ok(child) => child,
+        Err(error) => {
+            let message = with_command(&error.to_string(), &command_line);
+            let _ = tx.send(WorkerEvent::Log(message.clone()));
+            abort_job(&job, &message, &tx);
+            return;
+        }
+    };
+    let stdout_reader = child
+        .stdout
+        .take()
+        .map(|stdout| spawn_output_reader(stdout, tx.clone()));
+    let stderr_reader = child
+        .stderr
+        .take()
+        .map(|stderr| spawn_output_reader(stderr, tx.clone()));
+    let status = loop {
+        if cancel.load(Ordering::Acquire) {
+            let _ = child.kill();
+            break child.wait();
+        }
+        match child.try_wait() {
+            Ok(Some(status)) => break Ok(status),
+            Ok(None) => thread::sleep(std::time::Duration::from_millis(50)),
+            Err(error) => break Err(error),
+        }
+    };
+    let stdout_tail =
+        stdout_reader.map_or_else(String::new, |reader| reader.join().unwrap_or_default());
+    let stderr_tail =
+        stderr_reader.map_or_else(String::new, |reader| reader.join().unwrap_or_default());
+    let cancelled = cancel.load(Ordering::Acquire);
+    let status_success = status.as_ref().is_ok_and(std::process::ExitStatus::success);
+    let outputs = if status_success {
+        load_output_map(&metadata_path).ok()
+    } else {
+        None
+    };
+
     let mut succeeded = 0;
     let mut failed = 0;
     let mut skipped = 0;
-    for (index, file) in prepared_files.iter().enumerate() {
-        if cancel.load(Ordering::Acquire) {
-            skipped += prepared_files.len() - index;
-            break;
-        }
-        let _ = tx.send(WorkerEvent::FileStarted {
-            index,
-            input: file.input.clone(),
-        });
-        if let Err(error) = fs::create_dir_all(&file.output_dir) {
-            failed += 1;
-            let _ = tx.send(WorkerEvent::FileFailed {
-                input: file.input.clone(),
-                error: error.to_string(),
+    if cancelled {
+        skipped = total;
+        let _ = tx.send(WorkerEvent::Log("conversion was cancelled".into()));
+    } else {
+        for (index, input) in job.files.iter().enumerate() {
+            let _ = tx.send(WorkerEvent::FileStarted {
+                index,
+                input: input.clone(),
             });
-            continue;
-        }
-        let metadata_file = match tempfile::Builder::new()
-            .prefix("rimage-gui-")
-            .suffix(".json")
-            .tempfile()
-        {
-            Ok(file) => file,
-            Err(error) => {
-                failed += 1;
-                let _ = tx.send(WorkerEvent::FileFailed {
-                    input: file.input.clone(),
-                    error: error.to_string(),
-                });
-                continue;
-            }
-        };
-        let metadata_path = metadata_file.path().to_path_buf();
-        drop(metadata_file);
-        let args = build_args(&job, file, &metadata_path);
-        let command_line = format_command_line(&backend, &args);
-        let mut command = Command::new(&backend);
-        command
-            .args(&args)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
-        if job.options.hidden {
-            hidden(&mut command);
-        }
-        let mut child = match command.spawn() {
-            Ok(child) => child,
-            Err(error) => {
-                failed += 1;
-                let _ = tx.send(WorkerEvent::FileFailed {
-                    input: file.input.clone(),
-                    error: with_command(&error.to_string(), &command_line),
-                });
-                let _ = fs::remove_file(&metadata_path);
-                continue;
-            }
-        };
-        let stdout_reader = child
-            .stdout
-            .take()
-            .map(|stdout| spawn_output_reader(stdout, tx.clone()));
-        let stderr_reader = child
-            .stderr
-            .take()
-            .map(|stderr| spawn_output_reader(stderr, tx.clone()));
-        let status = loop {
-            if cancel.load(Ordering::Acquire) {
-                let _ = child.kill();
-                break child.wait();
-            }
-            match child.try_wait() {
-                Ok(Some(status)) => break Ok(status),
-                Ok(None) => thread::sleep(std::time::Duration::from_millis(50)),
-                Err(error) => break Err(error),
-            }
-        };
-        let stdout_tail =
-            stdout_reader.map_or_else(String::new, |reader| reader.join().unwrap_or_default());
-        let stderr_tail =
-            stderr_reader.map_or_else(String::new, |reader| reader.join().unwrap_or_default());
-        let cancelled = cancel.load(Ordering::Acquire);
-        let status_success = status.as_ref().is_ok_and(std::process::ExitStatus::success);
-        let outputs = if status_success {
-            load_output_map(&metadata_path).ok()
-        } else {
-            None
-        };
-        let result = verify_result(
-            status_success,
-            outputs.as_ref(),
-            &file.input,
-            job.options.original_policy,
-            cancelled,
-            &stdout_tail,
-            &stderr_tail,
-        );
-        match result {
-            Ok(output) => {
-                succeeded += 1;
-                let _ = tx.send(WorkerEvent::FileSucceeded {
-                    input: file.input.clone(),
-                    output,
-                });
-            }
-            Err(error) => {
-                failed += 1;
-                let _ = tx.send(WorkerEvent::FileFailed {
-                    input: file.input.clone(),
-                    error: with_command(&error, &command_line),
-                });
+            match batch_file_output(
+                status_success,
+                outputs.as_ref(),
+                input,
+                &job,
+                &stdout_tail,
+                &stderr_tail,
+            ) {
+                Ok(output) => {
+                    if status_success
+                        && job.options.original_policy == OriginalPolicy::DeleteAfterVerifiedSuccess
+                    {
+                        if !safe_to_delete(input, &output, false) {
+                            failed += 1;
+                            let _ = tx.send(WorkerEvent::FileFailed {
+                                input: input.clone(),
+                                error: with_command(
+                                    "refused to delete an input equal to the output",
+                                    &command_line,
+                                ),
+                            });
+                            continue;
+                        }
+                        if let Err(error) = fs::remove_file(input) {
+                            failed += 1;
+                            let _ = tx.send(WorkerEvent::FileFailed {
+                                input: input.clone(),
+                                error: with_command(
+                                    &format!("output created but input deletion failed: {error}"),
+                                    &command_line,
+                                ),
+                            });
+                            continue;
+                        }
+                    }
+                    succeeded += 1;
+                    let _ = tx.send(WorkerEvent::FileSucceeded {
+                        input: input.clone(),
+                        output,
+                    });
+                }
+                Err(error) => {
+                    failed += 1;
+                    let _ = tx.send(WorkerEvent::FileFailed {
+                        input: input.clone(),
+                        error: with_command(&error, &command_line),
+                    });
+                }
             }
         }
-        let _ = fs::remove_file(&metadata_path);
     }
     let _ = tx.send(WorkerEvent::Finished {
         succeeded,
         failed,
         skipped,
-        cancelled: cancel.load(Ordering::Acquire),
+        cancelled,
     });
 }
 
@@ -509,51 +528,50 @@ fn diagnostic_failure(base: &str, stdout: &str, stderr: &str) -> String {
     }
 }
 
-fn verify_result(
+/// Determines one input's outcome for a batch invocation.
+///
+/// On a fully successful batch the metadata confirms the exact output path; on
+/// a failed batch rimage writes no metadata, so the predicted output path is
+/// used as a best-effort signal.
+fn batch_file_output(
     status_success: bool,
     outputs: Option<&std::collections::HashMap<String, PathBuf>>,
     input: &Path,
-    policy: OriginalPolicy,
-    cancelled: bool,
+    job: &JobSpec,
     stdout_tail: &str,
     stderr_tail: &str,
 ) -> Result<PathBuf, String> {
-    use crate::metadata::path_key;
-    if cancelled {
-        return Err("conversion was cancelled".into());
-    }
-    if !status_success {
-        return Err(diagnostic_failure(
-            "rimage exited with a failure",
-            stdout_tail,
-            stderr_tail,
-        ));
-    }
-    let Some(outputs) = outputs else {
-        return Err(diagnostic_failure(
-            "rimage did not produce usable metadata",
-            stdout_tail,
-            stderr_tail,
-        ));
-    };
-    let Some(output) = outputs.get(&path_key(input)) else {
-        return Err(diagnostic_failure(
-            "metadata does not contain the current input",
-            stdout_tail,
-            stderr_tail,
-        ));
-    };
-    if !output.is_file() || !fs::metadata(output).is_ok_and(|metadata| metadata.len() > 0) {
-        return Err("metadata output is missing or empty".into());
-    }
-    if policy == OriginalPolicy::DeleteAfterVerifiedSuccess {
-        if !safe_to_delete(input, output, false) {
-            return Err("refused to delete an input equal to the output".into());
+    if status_success {
+        let Some(outputs) = outputs else {
+            return Err(diagnostic_failure(
+                "rimage did not produce usable metadata",
+                stdout_tail,
+                stderr_tail,
+            ));
+        };
+        let Some(output) = outputs.get(&path_key(input)) else {
+            return Err(diagnostic_failure(
+                "metadata does not contain the current input",
+                stdout_tail,
+                stderr_tail,
+            ));
+        };
+        if !output.is_file() || !fs::metadata(output).is_ok_and(|metadata| metadata.len() > 0) {
+            return Err("metadata output is missing or empty".into());
         }
-        fs::remove_file(input)
-            .map_err(|error| format!("output created but input deletion failed: {error}"))?;
+        Ok(output.clone())
+    } else {
+        let output = predicted_output_path(input, job);
+        if output.is_file() && fs::metadata(&output).is_ok_and(|metadata| metadata.len() > 0) {
+            Ok(output)
+        } else {
+            Err(diagnostic_failure(
+                "rimage exited with a failure",
+                stdout_tail,
+                stderr_tail,
+            ))
+        }
     }
-    Ok(output.clone())
 }
 
 #[cfg(test)]
@@ -563,7 +581,8 @@ mod tests {
     use crossbeam_channel::bounded;
 
     use super::{
-        MAX_DIAGNOSTIC_BYTES, WorkerEvent, diagnostic_failure, spawn_output_reader, verify_result,
+        MAX_DIAGNOSTIC_BYTES, WorkerEvent, batch_file_output, diagnostic_failure,
+        spawn_output_reader,
     };
 
     #[test]
@@ -600,12 +619,29 @@ mod tests {
 
     #[test]
     fn process_failure_includes_bounded_stderr_diagnostic() {
-        let result = verify_result(
+        use crate::model::{
+            JobSpec, OriginalPolicy, OutputFormat, OutputMode, ProcessingOptions, ResizeSpec,
+        };
+
+        let job = JobSpec {
+            files: vec!["C:\\in.jpg".into()],
+            options: ProcessingOptions {
+                format: OutputFormat::Jpeg,
+                quality: 85,
+                quantization: None,
+                dithering: None,
+                suffix: None,
+                output_mode: OutputMode::OriginalDir,
+                original_policy: OriginalPolicy::Keep,
+                resize: ResizeSpec::None,
+                hidden: true,
+            },
+        };
+        let result = batch_file_output(
             false,
             None,
             std::path::Path::new("C:\\in.jpg"),
-            crate::model::OriginalPolicy::Keep,
-            false,
+            &job,
             "stdout detail",
             "encoder failed",
         );

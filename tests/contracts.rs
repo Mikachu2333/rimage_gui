@@ -1,4 +1,4 @@
-use std::{ffi::OsString, fs};
+use std::{ffi::OsString, fs, path::Path};
 
 use rimage_gui::{
     backend::{WorkerEvent, extract_backend, start_job, verify_backend},
@@ -6,13 +6,12 @@ use rimage_gui::{
     input::{collect_paths, display_path, display_text, is_supported},
     metadata::output_for_input,
     model::{
-        BoundKind, JobSpec, OriginalPolicy, OutputFormat, OutputMode, PreparedFile,
-        ProcessingOptions, ResizeFilter, ResizeSpec, ResizeTarget, SizeBounds,
+        BoundKind, JobSpec, OriginalPolicy, OutputFormat, OutputMode, ProcessingOptions,
+        ResizeFilter, ResizeSpec, SizeBounds,
     },
     validation::{
-        ValidationError, calculate_resize, normalize_resize_arg, path_key, predicted_output_path,
-        prepare_job_files, reject_unsafe_delete, safe_to_delete, split_resize_args,
-        valid_component, validate_bounds, validate_job, validate_output_paths,
+        ValidationError, normalize_resize_arg, path_key, predicted_output_path, safe_to_delete,
+        split_resize_args, valid_component, validate_bounds, validate_job, validate_output_paths,
     },
 };
 
@@ -39,6 +38,17 @@ fn job(format: OutputFormat) -> JobSpec {
     }
 }
 
+fn args_text(job: &JobSpec) -> Vec<String> {
+    build_args(
+        job,
+        Path::new("C:\\file.list"),
+        Path::new("C:\\元 数据.json"),
+    )
+    .iter()
+    .map(|arg| arg.to_string_lossy().into_owned())
+    .collect()
+}
+
 #[test]
 fn format_mapping_and_quality_contract() {
     let cases = [
@@ -50,12 +60,7 @@ fn format_mapping_and_quality_contract() {
     ];
     for (format, name, quality) in cases {
         let j = job(format);
-        let p = PreparedFile {
-            input: j.files[0].clone(),
-            output_dir: "C:\\输出 目录".into(),
-            resize: None,
-        };
-        let args = build_args(&j, &p, std::path::Path::new("meta.json"));
+        let args = build_args(&j, Path::new("file.list"), Path::new("meta.json"));
         assert_eq!(args[0], OsString::from(name));
         assert_eq!(args.iter().any(|a| a == "--quality"), quality);
         assert_eq!(
@@ -75,97 +80,49 @@ fn format_mapping_and_quality_contract() {
 fn argv_is_structured_and_contains_expected_options() {
     let mut j = job(OutputFormat::Jpeg);
     j.options.original_policy = OriginalPolicy::Backup;
-    let p = PreparedFile {
-        input: j.files[0].clone(),
-        output_dir: "C:\\输出 目录".into(),
-        resize: Some(ResizeTarget {
-            args: vec!["800x600".into()],
-            filter: ResizeFilter::Lanczos3,
-        }),
+    j.options.suffix = None;
+    j.options.resize = ResizeSpec::Classic {
+        arg: "800x600".into(),
+        filter: ResizeFilter::Lanczos3,
     };
-    let args = build_args(&j, &p, std::path::Path::new("C:\\元 数据.json"));
-    assert!(args.contains(&OsString::from("--backup")));
-    assert!(args.contains(&OsString::from("--resize")));
-    assert!(args.contains(&OsString::from("800x600")));
-    assert!(args.contains(&OsString::from("--filter")));
-    assert!(args.contains(&OsString::from("lanczos3")));
-    assert!(args.contains(&OsString::from("--metadata")));
-    assert!(args.contains(&OsString::from("--threads")));
-    assert!(args.contains(&OsString::from("1")));
-    assert!(
-        args.iter()
-            .all(|arg| !arg.to_string_lossy().starts_with('"'))
-    );
+    let text = args_text(&j);
+    assert!(text.iter().any(|arg| arg == "--backup"));
+    assert!(text.iter().any(|arg| arg == "--resize"));
+    assert!(text.iter().any(|arg| arg == "800x600"));
+    assert!(text.iter().any(|arg| arg == "--filter"));
+    assert!(text.iter().any(|arg| arg == "lanczos3"));
+    assert!(text.iter().any(|arg| arg == "--metadata"));
+    assert!(text.iter().any(|arg| arg == "--threads"));
 }
 
 #[test]
-fn bounds_round_safely_and_detect_conflict() {
-    let downscaled = calculate_resize(
-        4001,
-        3000,
-        SizeBounds {
-            min: None,
-            max: Some(BoundKind::LongestEdge(1920)),
-        },
-    )
-    .unwrap();
-    assert_eq!(downscaled, Some((1920, 1439)));
-
-    let grown = calculate_resize(
-        101,
-        51,
-        SizeBounds {
-            min: Some(BoundKind::WidthHeight(200, 100)),
+fn bounds_require_single_direction() {
+    assert!(
+        validate_bounds(SizeBounds {
+            min: Some(BoundKind::LongestEdge(500)),
             max: None,
-        },
-    )
-    .unwrap()
-    .unwrap();
-    assert!(grown.0 >= 200 && grown.1 >= 100);
-
-    assert_eq!(
-        calculate_resize(
-            800,
-            600,
-            SizeBounds {
-                min: Some(BoundKind::LongestEdge(400)),
-                max: Some(BoundKind::WidthHeight(1_000, 1_000)),
-            },
-        )
-        .unwrap(),
-        None
+        })
+        .is_ok()
     );
     assert!(
-        calculate_resize(
-            100,
-            50,
-            SizeBounds {
-                min: Some(BoundKind::LongestEdge(200)),
-                max: Some(BoundKind::WidthHeight(250, 150)),
-            },
-        )
+        validate_bounds(SizeBounds {
+            min: None,
+            max: Some(BoundKind::LongestEdge(400)),
+        })
         .is_ok()
     );
     assert_eq!(
-        calculate_resize(
-            100,
-            100,
-            SizeBounds {
-                min: Some(BoundKind::LongestEdge(200)),
-                max: Some(BoundKind::LongestEdge(150)),
-            },
-        ),
+        validate_bounds(SizeBounds {
+            min: Some(BoundKind::LongestEdge(400)),
+            max: Some(BoundKind::LongestEdge(500)),
+        }),
         Err(ValidationError::SizeBounds)
     );
     assert_eq!(
-        calculate_resize(
-            400,
-            100,
-            SizeBounds {
-                min: Some(BoundKind::WidthHeight(200, 200)),
-                max: Some(BoundKind::WidthHeight(500, 150)),
-            },
-        ),
+        validate_bounds(SizeBounds {
+            min: Some(BoundKind::LongestEdge(0)),
+            max: None,
+        }),
         Err(ValidationError::SizeBounds)
     );
 }
@@ -185,13 +142,6 @@ fn validates_components_and_job_contract() {
         validate_bounds(SizeBounds {
             min: Some(BoundKind::LongestEdge(500)),
             max: Some(BoundKind::LongestEdge(400)),
-        }),
-        Err(ValidationError::SizeBounds)
-    );
-    assert_eq!(
-        validate_bounds(SizeBounds {
-            min: Some(BoundKind::WidthHeight(800, 300)),
-            max: Some(BoundKind::WidthHeight(700, 400)),
         }),
         Err(ValidationError::SizeBounds)
     );
@@ -267,34 +217,23 @@ fn resize_arg_normalizes_side_anchors_and_chains() {
 #[test]
 fn chained_resize_emits_one_flag_per_value_in_order() {
     let mut j = job(OutputFormat::Jpeg);
-    j.options.suffix = None;
-    let p = PreparedFile {
-        input: j.files[0].clone(),
-        output_dir: "C:\\输出 目录".into(),
-        resize: Some(ResizeTarget {
-            args: vec!["100x400".into(), "200s".into()],
-            filter: ResizeFilter::Lanczos3,
-        }),
+    j.options.resize = ResizeSpec::Classic {
+        arg: "100x400 200s".into(),
+        filter: ResizeFilter::Lanczos3,
     };
-    let args = build_args(&j, &p, std::path::Path::new("C:\\元 数据.json"));
-    let resize_flags: Vec<&std::ffi::OsStr> = args
+    let text = args_text(&j);
+    let resize: Vec<&str> = text
         .iter()
-        .map(std::ffi::OsString::as_os_str)
-        .filter(|arg| *arg == "--resize")
+        .filter(|arg| arg.as_str() == "--resize")
+        .map(String::as_str)
         .collect();
-    assert_eq!(resize_flags.len(), 2);
-    let first = args
-        .iter()
-        .position(|arg| arg == "--resize")
-        .expect("first resize flag");
-    assert_eq!(args[first + 1], OsString::from("100x400"));
-    assert_eq!(args[first + 2], OsString::from("--resize"));
-    assert_eq!(args[first + 3], OsString::from("200s"));
-    let filter = args
-        .iter()
-        .position(|arg| arg == "--filter")
-        .expect("filter flag");
-    assert_eq!(args[filter + 1], OsString::from("lanczos3"));
+    assert_eq!(resize.len(), 2);
+    let first = text.iter().position(|arg| arg == "--resize").unwrap();
+    assert_eq!(text[first + 1], "100x400");
+    assert_eq!(text[first + 2], "--resize");
+    assert_eq!(text[first + 3], "200s");
+    let filter = text.iter().position(|arg| arg == "--filter").unwrap();
+    assert_eq!(text[filter + 1], "lanczos3");
 }
 
 #[test]
@@ -316,30 +255,10 @@ fn resize_filter_maps_to_cli_names() {
 }
 
 #[test]
-fn per_image_bounds_conflict_is_detected_during_preflight() {
-    let dir = tempfile::tempdir().unwrap();
-    let input = dir.path().join("wide.png");
-    image::RgbImage::from_pixel(400, 100, image::Rgb([1, 2, 3]))
-        .save(&input)
-        .unwrap();
-    let mut spec = job(OutputFormat::Png);
-    spec.files = vec![input.clone()];
-    spec.options.output_mode = OutputMode::OriginalDir;
-    spec.options.resize = ResizeSpec::Bounds(SizeBounds {
-        min: Some(BoundKind::WidthHeight(200, 200)),
-        max: Some(BoundKind::LongestEdge(500)),
-    });
-    assert_eq!(
-        prepare_job_files(&spec),
-        Err(ValidationError::DimensionsConflict(input))
-    );
-}
-
-#[test]
-fn classic_resize_skips_dimension_reading() {
+fn classic_resize_validates_without_reading_dimensions() {
     let dir = tempfile::tempdir().unwrap();
     // A file rimage understands but the image crate cannot decode still works
-    // with a classic resize argument because no dimensions are required.
+    // with a classic resize argument because validation never reads dimensions.
     let input = dir.path().join("opaque.avif");
     fs::write(&input, b"not a real avif").unwrap();
     let mut spec = job(OutputFormat::Jpeg);
@@ -349,25 +268,17 @@ fn classic_resize_skips_dimension_reading() {
         arg: "720x_".into(),
         filter: ResizeFilter::Lanczos3,
     };
-    let prepared = prepare_job_files(&spec).unwrap();
-    assert_eq!(
-        prepared[0].resize.as_ref().map(|r| r.args.as_slice()),
-        Some(&["720w".to_string()][..])
-    );
-    assert_eq!(
-        prepared[0].resize.as_ref().map(|r| r.filter),
-        Some(ResizeFilter::Lanczos3)
-    );
+    assert!(validate_job(&spec).is_ok());
 }
 
 #[test]
 fn display_paths_hide_windows_verbatim_prefixes() {
     assert_eq!(
-        display_path(std::path::Path::new(r"\\?\C:\Pictures\a.png")),
+        display_path(Path::new(r"\\?\C:\Pictures\a.png")),
         r"C:\Pictures\a.png"
     );
     assert_eq!(
-        display_path(std::path::Path::new(r"\\?\UNC\server\share\a.png")),
+        display_path(Path::new(r"\\?\UNC\server\share\a.png")),
         r"\\server\share\a.png"
     );
     assert_eq!(
@@ -393,13 +304,9 @@ fn deletion_requires_nonempty_distinct_output() {
     delete_job.options.original_policy = OriginalPolicy::DeleteAfterVerifiedSuccess;
     delete_job.options.output_mode = OutputMode::OriginalDir;
     delete_job.options.suffix = None;
-    let prepared = PreparedFile {
-        input: dir.path().join("same.jpg"),
-        output_dir: dir.path().to_path_buf(),
-        resize: None,
-    };
+    delete_job.files = vec![dir.path().join("same.jpg")];
     assert_eq!(
-        reject_unsafe_delete(&prepared, &delete_job),
+        validate_output_paths(&delete_job),
         Err(ValidationError::UnsafeDelete)
     );
 }
@@ -535,7 +442,7 @@ fn input_filter_is_case_insensitive_and_deduplicates() {
 }
 
 #[test]
-fn embedded_backend_converts_each_image_serially() {
+fn embedded_backend_converts_batch_through_file_list() {
     let backend = extract_backend().expect("embedded backend should extract");
     verify_backend(&backend).expect("embedded backend should report the supported version");
 
@@ -543,7 +450,7 @@ fn embedded_backend_converts_each_image_serially() {
     let inputs: Vec<std::path::PathBuf> = FIXTURE_NAMES
         .iter()
         .map(|name| {
-            let source = std::path::Path::new(FIXTURE_DIR).join(name);
+            let source = Path::new(FIXTURE_DIR).join(name);
             assert!(
                 source.is_file(),
                 "missing test fixture: {}",
@@ -578,7 +485,7 @@ fn embedded_backend_converts_each_image_serially() {
     };
 
     let worker = start_job(conversion);
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+    let deadline = std::time::Instant::now() + std::time::Duration::from_mins(1);
     let mut successful_outputs = Vec::new();
     let mut started = 0;
     loop {

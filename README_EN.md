@@ -10,10 +10,10 @@ Windows-only `eframe`/`egui` GUI for [rimage 0.13.0](https://github.com/SalOne22
 - Drag/drop, native file dialogs, recursive background folder scanning, deduplication, and select-all/deselect-all batch list actions. Only the checked files are converted.
 - JPEG (MozJPEG), PNG (OxiPNG), JPEG XL, WebP, and AVIF output.
 - Quality, quantization/dithering, output location, original-file policy, and a custom output suffix. The suffix defaults to `_new` and is appended without a separator, so `a.jpg` becomes `a_new.jpg`.
-- Classic rimage resize arguments (`@1.5`, `150%`, `1920x1080`, `720w`/`720h`, `1000l`/`500s`; Aardio-style `720x_` is normalized to `720w`) with a selectable filter (`nearest`, `box`, `bilinear`, `hamming`, `catmull-rom`, `mitchell`, `lanczos3`), or aspect-ratio-preserving minimum/maximum size constraints as an alternative mode. Classic arguments may be chained by separating several values with spaces; each value is emitted as its own `--resize` flag so rimage maps it against the size the previous value produced. The two resize modes are mutually exclusive.
+- Classic rimage resize arguments (`@1.5`, `150%`, `1920x1080`, `720w`/`720h`, `1000l`/`500s`; Aardio-style `720x_` is normalized to `720w`) with a selectable filter (`nearest`, `box`, `bilinear`, `hamming`, `catmull-rom`, `mitchell`, `lanczos3`), or a longest-edge size limit (enlarge-only or reduce-only) as an alternative mode. Classic arguments may be chained by separating several values with spaces; each value is emitted as its own `--resize` flag so rimage maps it against the size the previous value produced. The two resize modes are mutually exclusive.
 - Backup original-file policy is linked with the suffix: selecting Backup closes the suffix, leaving Backup restores its previous state, and re-checking the suffix while Backup is active switches the policy back to Keep.
 - Hidden-execution toggle for the rimage console window.
-- Serial conversion: exactly one input file per rimage process, always with `--threads 1`. A background worker keeps the GUI responsive, and cancellation stops the current file and skips the rest.
+- Batch conversion through rimage's native `file.list`: one rimage invocation processes the whole list, always with `--threads 1`. A background worker keeps the GUI responsive, and cancellation terminates the running process.
 - Per-file metadata, bounded logs, per-file progress, cancellation, and conservative delete-after-verified-success.
 
 ## Backend files
@@ -64,4 +64,4 @@ the input directory the input path is replaced in place. Because an explicit
 `--directory` equal to the input directory makes rimage fail, that case runs
 without `--directory` so rimage keeps its native in-place behavior.
 
-Jobs run strictly serially (`--threads 1`, one input per process) so behavior stays predictable on low-memory machines even though it is slower than parallel batching.
+Jobs run through a single `file.list` invocation (`--threads 1`, so rimage processes images serially internally) keeping behavior predictable on low-memory machines even though it is slower than parallel batching.

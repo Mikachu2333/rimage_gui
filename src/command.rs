@@ -3,17 +3,16 @@ use std::{
     path::Path,
 };
 
-use crate::metadata::path_key;
-use crate::model::{JobSpec, OriginalPolicy, PreparedFile};
+use crate::model::{BoundKind, JobSpec, OriginalPolicy, OutputMode, ResizeFilter, ResizeSpec};
 
-/// Builds one rimage invocation for a single input file.
+/// Builds one rimage invocation for the whole batch.
 ///
-/// Every invocation runs serially: exactly one input file per process and a
-/// fixed `--threads 1`, so rimage never processes images in parallel. Each
-/// invocation also gets its own `--metadata` file so results are matched
-/// exactly to the current input.
+/// All input paths are passed through a `file.list`, so rimage reads them from
+/// a single UTF-8 list instead of positional arguments. A fixed `--threads 1`
+/// keeps memory usage predictable; the one `--metadata` file carries every
+/// successful input/output pair for the batch.
 #[must_use]
-pub fn build_args(job: &JobSpec, file: &PreparedFile, metadata: &Path) -> Vec<OsString> {
+pub fn build_args(job: &JobSpec, file_list: &Path, metadata: &Path) -> Vec<OsString> {
     let options = &job.options;
     let mut args = vec![OsString::from(options.format.cli_name())];
     if options.format.supports_quality() {
@@ -22,19 +21,11 @@ pub fn build_args(job: &JobSpec, file: &PreparedFile, metadata: &Path) -> Vec<Os
             OsString::from(options.quality.to_string()),
         ]);
     }
-    // rimage's `--backup` fails (exit 1, no diagnostic) when an explicit
-    // `--directory` resolves to the input's own directory: it renames the
-    // input to `<stem>@backup.<ext>` and then cannot publish the output.
-    // Omitting `--directory` in that case selects the identical output
-    // location while keeping the native in-place backup behavior.
-    let backup_outputs_in_place = job.options.original_policy == OriginalPolicy::Backup
-        && path_key(&file.output_dir)
-            == path_key(file.input.parent().unwrap_or_else(|| Path::new(".")));
-    if !backup_outputs_in_place {
-        args.extend([
-            OsString::from("--directory"),
-            file.output_dir.as_os_str().to_owned(),
-        ]);
+    // `OriginalDir` keeps rimage's in-place output (beside each input);
+    // `SelectedDir` funnels every output into one directory. This is the only
+    // way to express the output location without per-file `--directory` values.
+    if let OutputMode::SelectedDir(dir) = &options.output_mode {
+        args.extend([OsString::from("--directory"), dir.as_os_str().to_owned()]);
     }
     if let Some(suffix) = &options.suffix {
         args.extend([OsString::from("--suffix"), OsString::from(suffix)]);
@@ -54,24 +45,55 @@ pub fn build_args(job: &JobSpec, file: &PreparedFile, metadata: &Path) -> Vec<Os
             ]);
         }
     }
-    if let Some(resize) = &file.resize {
-        for value in &resize.args {
-            args.extend([OsString::from("--resize"), OsString::from(value.clone())]);
-        }
-        args.extend([
-            OsString::from("--filter"),
-            OsString::from(resize.filter.cli_name()),
-        ]);
-    }
+    push_resize_args(&mut args, &options.resize);
     args.extend([
         OsString::from("--threads"),
-        OsString::from("1"),
+        OsString::from(thread_count().to_string()),
         OsString::from("--no-progress"),
         OsString::from("--metadata"),
         metadata.as_os_str().to_owned(),
     ]);
-    args.push(file.input.as_os_str().to_owned());
+    args.push(file_list.as_os_str().to_owned());
     args
+}
+
+/// Returns the rimage worker count: one less than the system's logical CPU
+/// count, with a floor of one.
+#[must_use]
+fn thread_count() -> usize {
+    std::thread::available_parallelism()
+        .map_or(1, |parallelism| parallelism.get())
+        .saturating_sub(1)
+        .max(1)
+}
+
+/// Emits the resize preprocessing arguments shared by every input in the batch.
+fn push_resize_args(args: &mut Vec<OsString>, resize: &ResizeSpec) {
+    match resize {
+        ResizeSpec::None => {}
+        ResizeSpec::Classic { arg, filter } => {
+            // `validate_job` normalizes and rejects malformed chains first, so
+            // re-splitting here yields the same canonical values.
+            for value in crate::validation::split_resize_args(arg).unwrap_or_default() {
+                args.push(OsString::from("--resize"));
+                args.push(OsString::from(value));
+            }
+            args.push(OsString::from("--filter"));
+            args.push(OsString::from(filter.cli_name()));
+        }
+        ResizeSpec::Bounds(bounds) => {
+            let (value, flag) = match (bounds.min, bounds.max) {
+                (Some(BoundKind::LongestEdge(min)), None) => (format!("{min}l"), "--enlarge-only"),
+                (None, Some(BoundKind::LongestEdge(max))) => (format!("{max}l"), "--reduce-only"),
+                _ => return,
+            };
+            args.push(OsString::from("--resize"));
+            args.push(OsString::from(value));
+            args.push(OsString::from(flag));
+            args.push(OsString::from("--filter"));
+            args.push(OsString::from(ResizeFilter::Lanczos3.cli_name()));
+        }
+    }
 }
 
 /// Formats a copyable Windows command line for diagnostics.
@@ -128,8 +150,37 @@ mod tests {
 
     use super::*;
     use crate::model::{
-        OutputFormat, OutputMode, ProcessingOptions, ResizeFilter, ResizeSpec, ResizeTarget,
+        BoundKind, OriginalPolicy, OutputFormat, OutputMode, ProcessingOptions, ResizeFilter,
+        ResizeSpec, SizeBounds,
     };
+
+    fn job(output_mode: OutputMode, resize: ResizeSpec) -> JobSpec {
+        JobSpec {
+            files: vec!["C:\\输入 图片.jpg".into()],
+            options: ProcessingOptions {
+                format: OutputFormat::Jpeg,
+                quality: 85,
+                quantization: None,
+                dithering: None,
+                suffix: None,
+                output_mode,
+                original_policy: OriginalPolicy::Keep,
+                resize,
+                hidden: true,
+            },
+        }
+    }
+
+    fn args_text(job: &JobSpec) -> Vec<String> {
+        let args = build_args(
+            job,
+            Path::new("C:\\临时\\file.list"),
+            Path::new("C:\\元 数据.json"),
+        );
+        args.iter()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect()
+    }
 
     #[test]
     fn diagnostic_command_line_quotes_copyably() {
@@ -149,105 +200,72 @@ mod tests {
     }
 
     #[test]
-    fn backup_in_original_directory_omits_directory_flag() {
-        use crate::model::{OutputMode, ProcessingOptions, ResizeSpec};
-
-        let job = JobSpec {
-            files: vec!["C:\\a.jpg".into()],
-            options: ProcessingOptions {
-                format: OutputFormat::Jpeg,
-                quality: 85,
-                quantization: None,
-                dithering: None,
-                suffix: None,
-                output_mode: OutputMode::OriginalDir,
-                original_policy: OriginalPolicy::Backup,
-                resize: ResizeSpec::None,
-                hidden: true,
-            },
-        };
-        let file = PreparedFile {
-            input: "C:\\a.jpg".into(),
-            output_dir: "C:\\".into(),
-            resize: None,
-        };
-        let args = build_args(&job, &file, Path::new("C:\\meta.json"));
-        let text: Vec<String> = args
-            .iter()
-            .map(|a| a.to_string_lossy().into_owned())
-            .collect();
-        assert!(!text.contains(&"--directory".to_string()));
-        assert!(text.contains(&"--backup".to_string()));
+    fn original_dir_omits_directory_flag() {
+        let text = args_text(&job(OutputMode::OriginalDir, ResizeSpec::None));
+        assert!(!text.iter().any(|arg| arg == "--directory"));
     }
 
     #[test]
-    fn backup_in_selected_directory_keeps_directory_flag() {
-        use crate::model::{OutputMode, ProcessingOptions, ResizeSpec};
-
-        let job = JobSpec {
-            files: vec!["C:\\a.jpg".into()],
-            options: ProcessingOptions {
-                format: OutputFormat::Jpeg,
-                quality: 85,
-                quantization: None,
-                dithering: None,
-                suffix: None,
-                output_mode: OutputMode::SelectedDir("C:\\out".into()),
-                original_policy: OriginalPolicy::Backup,
-                resize: ResizeSpec::None,
-                hidden: true,
-            },
-        };
-        let file = PreparedFile {
-            input: "C:\\a.jpg".into(),
-            output_dir: "C:\\out".into(),
-            resize: None,
-        };
-        let args = build_args(&job, &file, Path::new("C:\\meta.json"));
-        let text: Vec<String> = args
-            .iter()
-            .map(|a| a.to_string_lossy().into_owned())
-            .collect();
-        assert!(text.contains(&"--directory".to_string()));
-        assert!(text.contains(&"C:\\out".to_string()));
+    fn selected_dir_keeps_directory_flag() {
+        let text = args_text(&job(
+            OutputMode::SelectedDir("C:\\输出 目录".into()),
+            ResizeSpec::None,
+        ));
+        let index = text.iter().position(|arg| arg == "--directory").unwrap();
+        assert_eq!(text[index + 1], "C:\\输出 目录");
     }
 
     #[test]
-    fn single_file_args_are_serial_and_include_filter() {
-        let job = JobSpec {
-            files: vec!["C:\\a.jpg".into()],
-            options: ProcessingOptions {
-                format: OutputFormat::Jpeg,
-                quality: 85,
-                quantization: None,
-                dithering: None,
-                suffix: Some("updated".into()),
-                output_mode: OutputMode::OriginalDir,
-                original_policy: OriginalPolicy::Keep,
-                resize: ResizeSpec::None,
-                hidden: true,
-            },
-        };
-        let file = PreparedFile {
-            input: "C:\\a.jpg".into(),
-            output_dir: "C:\\a".into(),
-            resize: Some(ResizeTarget {
-                args: vec!["720w".into()],
-                filter: ResizeFilter::Mitchell,
-            }),
-        };
-        let args = build_args(&job, &file, Path::new("C:\\meta.json"));
-        let text: Vec<String> = args
-            .iter()
-            .map(|a| a.to_string_lossy().into_owned())
-            .collect();
+    fn batch_args_end_with_file_list_and_metadata() {
+        let mut spec = job(OutputMode::OriginalDir, ResizeSpec::None);
+        spec.options.suffix = Some("updated".into());
+        let text = args_text(&spec);
         assert_eq!(text[0], "mozjpeg");
         let threads_index = text.iter().position(|a| a == "--threads").unwrap();
-        assert_eq!(text[threads_index + 1], "1");
-        assert!(text.contains(&"--filter".to_string()));
-        assert!(text.contains(&"mitchell".to_string()));
-        assert!(text.contains(&"720w".to_string()));
-        assert!(text.contains(&"C:\\meta.json".to_string()));
-        assert_eq!(text.iter().filter(|a| a.as_str() == "C:\\a.jpg").count(), 1);
+        assert_eq!(text[threads_index + 1], thread_count().to_string());
+        assert!(text.iter().any(|arg| arg == "--no-progress"));
+        assert!(text.iter().any(|arg| arg == "--suffix"));
+        assert!(text.iter().any(|arg| arg == "updated"));
+        assert!(text.iter().any(|arg| arg == "--metadata"));
+        assert_eq!(text.last().map(String::as_str), Some("C:\\临时\\file.list"));
+    }
+
+    #[test]
+    fn classic_resize_emits_chained_flags_and_filter() {
+        let spec = job(
+            OutputMode::OriginalDir,
+            ResizeSpec::Classic {
+                arg: "720w 1000l".into(),
+                filter: ResizeFilter::Mitchell,
+            },
+        );
+        let text = args_text(&spec);
+        let resize: Vec<&str> = text
+            .iter()
+            .filter(|arg| arg.as_str() == "--resize")
+            .map(String::as_str)
+            .collect();
+        assert_eq!(resize.len(), 2);
+        assert!(text.iter().any(|arg| arg == "720w"));
+        assert!(text.iter().any(|arg| arg == "1000l"));
+        assert!(text.iter().any(|arg| arg == "--filter"));
+        assert!(text.iter().any(|arg| arg == "mitchell"));
+    }
+
+    #[test]
+    fn bounds_resize_emits_reduce_only_direction() {
+        let spec = job(
+            OutputMode::OriginalDir,
+            ResizeSpec::Bounds(SizeBounds {
+                min: None,
+                max: Some(BoundKind::LongestEdge(1000)),
+            }),
+        );
+        let text = args_text(&spec);
+        assert!(text.iter().any(|arg| arg == "--resize"));
+        assert!(text.iter().any(|arg| arg == "1000l"));
+        assert!(text.iter().any(|arg| arg == "--reduce-only"));
+        assert!(text.iter().any(|arg| arg == "--filter"));
+        assert!(text.iter().any(|arg| arg == "lanczos3"));
     }
 }

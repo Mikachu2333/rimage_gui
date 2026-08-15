@@ -81,8 +81,9 @@ impl ResizeFilter {
 
 /// How resizing is configured. `Classic` forwards the user's raw argument to
 /// rimage (`@1.5`, `150%`, `1920x1080`, `720w`/`720h`, `1000l`/`500s`, and
-/// whitespace-separated chains); `Bounds` computes an aspect-ratio-preserving
-/// target size. The two modes are mutually exclusive.
+/// whitespace-separated chains). `Bounds` restricts the longest edge in a
+/// single direction, mapped to rimage's native `--enlarge-only` /
+/// `--reduce-only` flags. The two modes are mutually exclusive.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum ResizeSpec {
     #[default]
@@ -94,20 +95,10 @@ pub enum ResizeSpec {
     Bounds(SizeBounds),
 }
 
-/// Final `--resize` values and `--filter` for one prepared file. Chained values
-/// are emitted as successive `--resize` flags and each one maps the size the
-/// previous value produced.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ResizeTarget {
-    pub args: Vec<String>,
-    pub filter: ResizeFilter,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OutputMode {
     OriginalDir,
     SelectedDir(PathBuf),
-    OriginalSubfolder(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -120,7 +111,6 @@ pub enum OriginalPolicy {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BoundKind {
     LongestEdge(u32),
-    WidthHeight(u32, u32),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -147,11 +137,4 @@ pub struct ProcessingOptions {
 pub struct JobSpec {
     pub files: Vec<PathBuf>,
     pub options: ProcessingOptions,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PreparedFile {
-    pub input: PathBuf,
-    pub output_dir: PathBuf,
-    pub resize: Option<ResizeTarget>,
 }

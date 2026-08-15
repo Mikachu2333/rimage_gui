@@ -51,20 +51,17 @@ const PROGRESS_BAR_HEIGHT: f32 = 16.0;
 enum BoundUi {
     Disabled,
     Longest,
-    WidthHeight,
 }
 #[derive(Clone)]
 struct BoundForm {
     mode: BoundUi,
-    first: u32,
-    second: u32,
+    value: u32,
 }
 impl Default for BoundForm {
     fn default() -> Self {
         Self {
             mode: BoundUi::Disabled,
-            first: 1920,
-            second: 1080,
+            value: 1920,
         }
     }
 }
@@ -72,8 +69,7 @@ impl BoundForm {
     fn value(&self) -> Option<BoundKind> {
         match self.mode {
             BoundUi::Disabled => None,
-            BoundUi::Longest => Some(BoundKind::LongestEdge(self.first)),
-            BoundUi::WidthHeight => Some(BoundKind::WidthHeight(self.first, self.second)),
+            BoundUi::Longest => Some(BoundKind::LongestEdge(self.value)),
         }
     }
 }
@@ -153,7 +149,6 @@ pub struct RimageApp {
     suffix: String,
     output_choice: u8,
     output_dir: PathBuf,
-    subfolder: String,
     policy: OriginalPolicy,
     resize_mode: ResizeUi,
     resize_arg: String,
@@ -187,7 +182,6 @@ impl Default for RimageApp {
             suffix: "_new".into(),
             output_choice: 0,
             output_dir: PathBuf::new(),
-            subfolder: "converted".into(),
             policy: OriginalPolicy::Keep,
             resize_mode: ResizeUi::Off,
             resize_arg: String::new(),
@@ -291,7 +285,6 @@ impl RimageApp {
                 },
                 output_mode: match self.output_choice {
                     1 => OutputMode::SelectedDir(self.output_dir.clone()),
-                    2 => OutputMode::OriginalSubfolder(self.subfolder.clone()),
                     _ => OutputMode::OriginalDir,
                 },
                 original_policy: self.policy,
@@ -441,7 +434,6 @@ impl RimageApp {
                 .selected_text(match bound.mode {
                     BoundUi::Disabled => tr(language, Text::Disabled),
                     BoundUi::Longest => tr(language, Text::LongestEdge),
-                    BoundUi::WidthHeight => tr(language, Text::WidthHeight),
                 })
                 .show_ui(ui, |ui| {
                     ui.selectable_value(
@@ -454,18 +446,9 @@ impl RimageApp {
                         BoundUi::Longest,
                         tr(language, Text::LongestEdge),
                     );
-                    ui.selectable_value(
-                        &mut bound.mode,
-                        BoundUi::WidthHeight,
-                        tr(language, Text::WidthHeight),
-                    );
                 });
             if bound.mode != BoundUi::Disabled {
-                ui.add(egui::DragValue::new(&mut bound.first).range(1..=65_535));
-            }
-            if bound.mode == BoundUi::WidthHeight {
-                ui.label("×");
-                ui.add(egui::DragValue::new(&mut bound.second).range(1..=65_535));
+                ui.add(egui::DragValue::new(&mut bound.value).range(1..=65_535));
             }
         });
     }
@@ -605,12 +588,6 @@ impl RimageApp {
                 tr(self.language, Text::SelectedDir),
             )
             .on_hover_text(self.text(Text::SelectedDirTip));
-            ui.selectable_value(
-                &mut self.output_choice,
-                2,
-                tr(self.language, Text::Subfolder),
-            )
-            .on_hover_text(self.text(Text::SubfolderTip));
         });
         if self.output_choice == 1 {
             ui.horizontal(|ui| {
@@ -632,12 +609,6 @@ impl RimageApp {
                 if browse_clicked && let Some(p) = rfd::FileDialog::new().pick_folder() {
                     self.output_dir = p;
                 }
-            });
-        } else if self.output_choice == 2 {
-            ui.horizontal(|ui| {
-                ui.label(self.text(Text::Subfolder));
-                ui.add(egui::TextEdit::singleline(&mut self.subfolder).desired_width(170.0))
-                    .on_hover_text(self.text(Text::SubfolderTip));
             });
         }
     }

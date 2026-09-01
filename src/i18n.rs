@@ -10,7 +10,6 @@ impl Language {
     pub fn effective(self) -> Self {
         match self {
             Self::System => {
-                return  Self::English;
                 if sys_locale::get_locale()
                     .is_some_and(|v| v.to_ascii_lowercase().starts_with("zh"))
                 {

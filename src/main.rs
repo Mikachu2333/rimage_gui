@@ -8,10 +8,11 @@ use rimage_gui::{
 
 fn main() -> eframe::Result {
     // Refresh the embedded backend before the window appears: whenever the
-    // cached rimage no longer matches the bundled bytes it is re-extracted.
+    // cached rimage no longer matches the bundled bytes it is re-extracted, and
+    // the one-time `--version` probe is latched for the whole process.
     // A failure here is non-fatal; the worker retries at job time and shows
     // the error in the UI.
-    let _ = rimage_gui::backend::extract_backend();
+    let _ = rimage_gui::backend::prepare_backend();
 
     let mut viewport = egui::ViewportBuilder::default()
         .with_inner_size(WINDOW_INNER_SIZE)

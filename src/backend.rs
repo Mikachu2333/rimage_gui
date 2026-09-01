@@ -261,6 +261,26 @@ pub fn verify_backend(path: &Path) -> Result<(), BackendError> {
     }
 }
 
+/// Latched once the backend reports the supported version in this process.
+static VERSION_VERIFIED: AtomicBool = AtomicBool::new(false);
+
+/// Extracts the backend and probes its version at most once per process.
+///
+/// `extract_backend` still runs for every caller because it re-verifies the
+/// executable against the embedded bytes; only the `--version` process spawn is
+/// memoized. A failed probe leaves the latch unset, so the next caller retries.
+///
+/// # Errors
+/// Propagates [`extract_backend`] and [`verify_backend`] failures.
+pub fn prepare_backend() -> Result<PathBuf, BackendError> {
+    let path = extract_backend()?;
+    if !VERSION_VERIFIED.load(Ordering::Acquire) {
+        verify_backend(&path)?;
+        VERSION_VERIFIED.store(true, Ordering::Release);
+    }
+    Ok(path)
+}
+
 #[must_use]
 pub fn start_job(job: JobSpec) -> WorkerHandle {
     let (tx, rx) = bounded(1024);
@@ -284,10 +304,7 @@ fn run_job(job: JobSpec, cancel: Arc<AtomicBool>, tx: Sender<WorkerEvent>) {
         abort_job(&job, &message, &tx);
         return;
     }
-    let backend = match extract_backend().and_then(|path| {
-        verify_backend(&path)?;
-        Ok(path)
-    }) {
+    let backend = match prepare_backend() {
         Ok(path) => path,
         Err(error) => {
             let message = error.to_string();

@@ -90,12 +90,10 @@ fn configure_ui_style(context: &egui::Context) {
 }
 
 fn load_icon() -> Option<egui::IconData> {
-    let image = image::load_from_memory(include_bytes!("../icon.ico"))
-        .ok()?
-        .into_rgba8();
-    let (width, height) = image.dimensions();
+    let (width, height) = (256, 256);
+    let image = include_bytes!("../icon_raw");
     Some(egui::IconData {
-        rgba: image.into_raw(),
+        rgba: image.to_vec(),
         width,
         height,
     })

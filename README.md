@@ -2,7 +2,7 @@
 
 [ENG](/README_EN.md)
 
-基于 `eframe`/`egui` 的 Windows 图形界面，封装 [rimage 0.13.0](https://github.com/SalOne22/rimage)，用于批量图像优化与格式转换。
+基于 `eframe`/`egui` 的 Windows 图形界面，封装 [rimage](https://github.com/SalOne22/rimage)，用于批量图像优化与格式转换。
 
 ![cn](./cn.jpg)
 
@@ -26,7 +26,7 @@
 - `i686-pc-windows-msvc`：`res/rimage_x86.exe`
 - `x86_64-pc-windows-msvc`：`res/rimage_x64.exe`
 
-两者都必须是 `rimage 0.13.0`。后端会解压到当前用户的缓存目录（按版本/架构分目录），通过 SHA-256 校验，并以临时文件重命名方式发布；不会写到 GUI 可执行文件旁边。
+后端会解压到当前用户的缓存目录（按版本/架构分目录），通过 SHA-256 校验，并以临时文件重命名方式发布；不会写到 GUI 可执行文件旁边。
 
 ## 构建
 
@@ -61,6 +61,6 @@ rustup run stable-x86_64-pc-windows-msvc cargo test --workspace --all-features -
 
 “验证成功后删除”采用保守策略：rimage 元数据必须命中当前输入与真实输出；进程必须成功；输出必须存在、非空且与输入不同；且不得处于取消状态。否则保留输入不动。
 
-备份策略会传入 rimage 的 `--backup`。在 rimage 0.13.0 下，原文件会以 `stem@backup.ext` 硬链接保留（原路径不再持有它），转换结果写入输出位置；当输出在输入目录内时，输入路径被就地替换。由于显式传入与输入目录相同的 `--directory` 会让 rimage 失败，这种情况会省略 `--directory`，让 rimage 保持原生的就地备份行为。
+备份策略会传入 rimage 的 `--backup`。在 rimage 下，原文件会以 `stem@backup.ext` 硬链接保留（原路径不再持有它），转换结果写入输出位置；当输出在输入目录内时，输入路径被就地替换。由于显式传入与输入目录相同的 `--directory` 会让 rimage 失败，这种情况会省略 `--directory`，让 rimage 保持原生的就地备份行为。
 
 任务通过单次 `file.list` 调用执行，`--threads` 默认由系统 CPU 核数动态决定（核数 - 1，最低为 1），可手动覆盖。

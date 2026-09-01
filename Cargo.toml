@@ -1,6 +1,6 @@
 [package]
 name = "rimage-gui"
-version = "3.0.0"
+version = "3.0.1"
 edition = "2024"
 description = "Windows GUI for rimage"
 license = "MIT"
@@ -15,24 +15,26 @@ name = "rimage-gui"
 path = "src/main.rs"
 
 [dependencies]
-crossbeam-channel = "0.5.15"
+crossbeam-channel = "0.5.16"
 directories = "6.0.0"
-eframe = { version = "0.31.1", default-features = false, features = ["default_fonts", "glow"] }
-image = { version = "0.25.8", default-features = false, features = ["avif", "bmp", "ff", "hdr", "ico", "jpeg", "png", "pnm", "qoi", "tiff", "webp"] }
-rfd = "0.15.4"
-serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.143"
-sha2 = "0.10.9"
+eframe = { version = "0.36.1", default-features = false, features = [
+    "default_fonts",
+    "glow",
+] }
+rfd = "0.17.2"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+sha2 = "0.11.0"
 sys-locale = "0.3.2"
-tempfile = "3.21.0"
-thiserror = "2.0.16"
+tempfile = "3.27.0"
+thiserror = "2.0.20"
 walkdir = "2.5.0"
 
 [build-dependencies]
-winresource = "0.1.22"
+winresource = "0.1.31"
 
 [dev-dependencies]
-tempfile = "3.21.0"
+tempfile = "3.27.0"
 
 [profile.release]
 lto = "thin"

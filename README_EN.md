@@ -1,6 +1,6 @@
 # Rimage GUI
 
-Windows-only `eframe`/`egui` GUI for [rimage 0.13.0](https://github.com/SalOne22/rimage).
+Windows-only `eframe`/`egui` GUI for [rimage](https://github.com/SalOne22/rimage).
 
 ![en](./en.jpg)
 

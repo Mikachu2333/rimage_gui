@@ -255,7 +255,6 @@ pub fn verify_backend(path: &Path) -> Result<(), BackendError> {
     let output = command.output()?;
     let text = String::from_utf8_lossy(&output.stdout).trim().to_owned();
     if output.status.success() && text == RIMAGE_VERSION_STRING {
-        dbg!(&text);
         Ok(())
     } else {
         Err(BackendError::Version(text))

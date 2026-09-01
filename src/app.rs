@@ -335,7 +335,7 @@ impl RimageApp {
             }
         }
     }
-    fn poll(&mut self, ctx: &egui::Context) {
+    fn poll(&mut self, ui: &egui::Context) {
         if let Some(rx) = &self.scan_rx {
             match rx.try_recv() {
                 Ok(paths) => {
@@ -427,7 +427,7 @@ impl RimageApp {
             }
         }
         if self.worker.is_some() || self.scan_rx.is_some() {
-            ctx.request_repaint_after(std::time::Duration::from_millis(50));
+            ui.request_repaint_after(std::time::Duration::from_millis(50));
         }
     }
     fn remove_selected(&mut self) {
@@ -492,9 +492,9 @@ impl RimageApp {
         // Without this isolation, an over-wide scroll content (for example
         // longer English labels) widens the scroll area itself and would push
         // the buttons past the window's right edge.
-        egui::TopBottomPanel::bottom("options-actions")
+        egui::Panel::bottom("options-actions")
             .frame(egui::Frame::NONE)
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 ui.separator();
                 self.action_buttons_ui(ui, self.worker.is_some());
             });
@@ -970,20 +970,20 @@ impl RimageApp {
         });
     }
 
-    fn clamp_window_once(&mut self, ctx: &egui::Context) {
+    fn clamp_window_once(&mut self, ui: &egui::Context) {
         if self.window_sized {
             return;
         }
         self.window_sized = true;
-        if let Some(monitor) = ctx.input(|i| i.viewport().monitor_size) {
+        if let Some(monitor) = ui.input(|i| i.viewport().monitor_size) {
             let (size, min) = clamped_window_size(
                 WINDOW_INNER_SIZE,
                 monitor,
                 WINDOW_MARGIN,
                 WINDOW_MIN_INNER_SIZE,
             );
-            ctx.send_viewport_cmd(egui::ViewportCommand::MinInnerSize(min));
-            ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(size));
+            ui.send_viewport_cmd(egui::ViewportCommand::MinInnerSize(min));
+            ui.send_viewport_cmd(egui::ViewportCommand::InnerSize(size));
         }
     }
 
@@ -992,7 +992,7 @@ impl RimageApp {
             i.raw
                 .dropped_files
                 .iter()
-                .filter_map(|f| f.path.clone())
+                .map(|f| f.path().to_path_buf())
                 .collect()
         });
         if !dropped.is_empty() && !busy {
@@ -1010,25 +1010,25 @@ impl Drop for RimageApp {
 }
 
 impl eframe::App for RimageApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.clamp_window_once(ctx);
-        self.poll(ctx);
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        self.clamp_window_once(ui);
+        self.poll(ui);
         let busy = self.worker.is_some() || self.scan_rx.is_some();
-        self.handle_dropped_files(ctx, busy);
-        egui::SidePanel::right("options")
+        self.handle_dropped_files(ui, busy);
+        egui::Panel::right("options")
             .resizable(false)
-            .exact_width(OPTIONS_WIDTH)
-            .show(ctx, |ui| self.options_panel_ui(ui, busy));
+            .exact_size(OPTIONS_WIDTH)
+            .show(ui, |ui| self.options_panel_ui(ui, busy));
         // The central panel keeps the same fill as the right options panel so
         // the window reads as one background. Its frame has no border; only a
         // small inset keeps the left column content off the window edges.
         egui::CentralPanel::default()
             .frame(
                 egui::Frame::new()
-                    .fill(ctx.style().visuals.panel_fill)
+                    .fill(ui.style().visuals.panel_fill)
                     .inner_margin(2.0),
             )
-            .show(ctx, |ui| self.central_panel_ui(ui, busy));
+            .show(ui, |ui| self.central_panel_ui(ui, busy));
     }
 }
 

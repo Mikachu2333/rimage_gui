@@ -28,6 +28,7 @@ const BACKEND_BYTES: &[u8] = include_bytes!("../res/rimage_x86.exe");
 const BACKEND_BYTES: &[u8] = include_bytes!("../res/rimage_x64.exe");
 #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
 compile_error!("rimage-gui supports only Windows x86 and x86_64");
+const RIMAGE_VERSION_STRING: &str = "rimage 0.13.0-1";
 
 #[derive(Debug)]
 pub enum WorkerEvent {
@@ -253,7 +254,8 @@ pub fn verify_backend(path: &Path) -> Result<(), BackendError> {
     hidden(&mut command);
     let output = command.output()?;
     let text = String::from_utf8_lossy(&output.stdout).trim().to_owned();
-    if output.status.success() && text.contains("rimage 0.13.0") {
+    if output.status.success() && text == RIMAGE_VERSION_STRING {
+        dbg!(&text);
         Ok(())
     } else {
         Err(BackendError::Version(text))

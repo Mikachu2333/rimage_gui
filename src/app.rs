@@ -418,6 +418,11 @@ impl RimageApp {
                         self.push_log(tr(self.language, Text::Cancelled));
                     }
                     self.worker = None;
+                    // Auto-clear the list once the job reaches a terminal
+                    // state so the next batch starts from an empty list
+                    // without an extra button click or confirmation.
+                    self.files.clear();
+                    self.selected.clear();
                 }
             }
         }

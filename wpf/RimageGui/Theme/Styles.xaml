@@ -65,10 +65,17 @@
         <Setter Property="Background" Value="{DynamicResource ToolTipBackground}" />
         <Setter Property="BorderBrush" Value="{DynamicResource ToolTipBorder}" />
         <Setter Property="HasDropShadow" Value="True" />
+        <!-- TextAlignment is an inheritable property, and a tooltip inherits
+             from the control it is attached to — the numeric fields set it to
+             Right for their digits, which would drag every tooltip they show
+             out of alignment. Pin it left here and on the TextBlock. -->
+        <Setter Property="TextBlock.TextAlignment" Value="Left" />
         <Setter Property="ContentTemplate">
             <Setter.Value>
                 <DataTemplate>
                     <TextBlock Text="{Binding}"
+                               TextAlignment="Left"
+                               HorizontalAlignment="Left"
                                TextWrapping="Wrap"
                                MaxWidth="380"
                                LineHeight="18"
@@ -83,8 +90,9 @@
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="1"
                             CornerRadius="4"
-                            Padding="10,7">
-                        <ContentPresenter />
+                            Padding="10,7"
+                            HorizontalAlignment="Left">
+                        <ContentPresenter HorizontalAlignment="Left" />
                     </Border>
                 </ControlTemplate>
             </Setter.Value>

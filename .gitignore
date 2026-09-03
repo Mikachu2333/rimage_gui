@@ -1,0 +1,18 @@
+# Build output
+bin/
+obj/
+dist/
+*.user
+*.pdb
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+
+# Local agent settings
+.claude/
+.zcode/
+
+# Published single-file layouts
+publish/

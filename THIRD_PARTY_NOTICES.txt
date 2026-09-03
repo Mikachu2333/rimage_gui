@@ -1,0 +1,17 @@
+Rimage GUI embeds and redistributes the rimage 0.13.0-1 command-line program
+(res/rimage_x64.exe, res/rimage_x86.exe).
+
+rimage is licensed under either the Apache License, Version 2.0 or the MIT License:
+https://github.com/SalOne22/rimage
+
+Note: embedded rimage process might use the Mikachu2333 compiled version.
+
+The complete rimage distribution and source repository contain LICENSE-APACHE and
+LICENSE-MIT. Distributors of this GUI must include those license texts with binary
+packages that contain the embedded backend.
+
+The embedded rimage binary in turn links third-party codec libraries (including
+mozjpeg, OxiPNG, libpng/zlib, libjpeg-turbo, libjxl, libavif/ravif, libwebp,
+jxl-oxide and zune-image family crates). Those components retain their respective
+licenses; see the rimage repository (Cargo.lock and each crate's package metadata)
+for the authoritative list.

@@ -1,0 +1,57 @@
+<!--
+    Light palette. Every key here must also exist in Palette.Dark.xaml: the two
+    files are swapped wholesale at runtime, and a key present in only one of them
+    would resolve to nothing after a theme change.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- surfaces -->
+    <SolidColorBrush x:Key="WindowBackground" Color="#F3F3F3" />
+    <SolidColorBrush x:Key="PanelBackground" Color="#FAFAFA" />
+    <SolidColorBrush x:Key="Divider" Color="#E0E0E0" />
+
+    <!-- controls -->
+    <SolidColorBrush x:Key="ControlBackground" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="ControlBackgroundHover" Color="#F0F0F0" />
+    <SolidColorBrush x:Key="ControlBackgroundPressed" Color="#E5E5E5" />
+    <SolidColorBrush x:Key="ControlBackgroundDisabled" Color="#F5F5F5" />
+    <SolidColorBrush x:Key="ControlBorder" Color="#D2D2D2" />
+    <SolidColorBrush x:Key="ControlBorderHover" Color="#B0B0B0" />
+    <SolidColorBrush x:Key="FocusBorder" Color="#0078D4" />
+
+    <!-- text -->
+    <SolidColorBrush x:Key="TextPrimary" Color="#1A1A1A" />
+    <SolidColorBrush x:Key="TextSecondary" Color="#5F5F5F" />
+    <SolidColorBrush x:Key="TextDisabled" Color="#A0A0A0" />
+
+    <!-- accent -->
+    <SolidColorBrush x:Key="AccentBackground" Color="#0078D4" />
+    <SolidColorBrush x:Key="AccentBackgroundHover" Color="#1A86D9" />
+    <SolidColorBrush x:Key="AccentBackgroundPressed" Color="#006CBE" />
+    <SolidColorBrush x:Key="AccentForeground" Color="#FFFFFF" />
+
+    <!-- file table -->
+    <SolidColorBrush x:Key="ListBackground" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="ListRowHover" Color="#F0F6FC" />
+    <SolidColorBrush x:Key="ListRowSelected" Color="#CCE4F7" />
+    <SolidColorBrush x:Key="ListRowSelectedText" Color="#1A1A1A" />
+    <SolidColorBrush x:Key="GridHeaderBackground" Color="#F5F5F5" />
+
+    <!-- log + progress -->
+    <SolidColorBrush x:Key="LogBackground" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="ProgressTrack" Color="#E6E6E6" />
+    <SolidColorBrush x:Key="ProgressFill" Color="#0078D4" />
+
+    <!-- semantic status -->
+    <SolidColorBrush x:Key="StatusDone" Color="#0F7B0F" />
+    <SolidColorBrush x:Key="StatusFailed" Color="#C42B1C" />
+    <SolidColorBrush x:Key="StatusMuted" Color="#6B6B6B" />
+
+    <!-- popups -->
+    <SolidColorBrush x:Key="ToolTipBackground" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="ToolTipBorder" Color="#D2D2D2" />
+    <SolidColorBrush x:Key="ScrollThumb" Color="#C2C2C2" />
+    <SolidColorBrush x:Key="ScrollThumbHover" Color="#A0A0A0" />
+
+</ResourceDictionary>

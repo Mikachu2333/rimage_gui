@@ -1,0 +1,582 @@
+<Window x:Class="RimageGui.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:RimageGui.I18n"
+        xmlns:conv="clr-namespace:RimageGui.Converters"
+        xmlns:ctrl="clr-namespace:RimageGui.Controls"
+        Title="{loc:Loc AppTitle}"
+        Width="1020" Height="720"
+        MinWidth="820" MinHeight="560"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource WindowBackground}"
+        FontFamily="{DynamicResource AppFont}"
+        FontSize="{DynamicResource FontSizeNormal}"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display">
+
+    <Window.Resources>
+        <conv:EnumToBooleanConverter x:Key="EnumToBool" />
+        <conv:EnumToVisibilityConverter x:Key="EnumToVisibility" />
+        <conv:FileStatusToTextConverter x:Key="StatusText" />
+        <conv:FileStatusToBrushConverter x:Key="StatusBrush" />
+        <conv:CliNameConverter x:Key="CliName" />
+        <conv:BooleanToVisibilityConverter x:Key="BoolToVisible" />
+
+        <!-- Every settings row is label + control on one baseline; sharing the
+             label column keeps the whole panel vertically aligned. -->
+        <Style x:Key="SettingRow" TargetType="Grid">
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+
+        <DataTemplate x:Key="CliItemTemplate">
+            <TextBlock Text="{Binding Converter={StaticResource CliName}}" />
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" MinWidth="440" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ================= LEFT: file management ================= -->
+        <Grid Grid.Column="0" Margin="12,12,10,12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" MinHeight="120" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="150" />
+            </Grid.RowDefinitions>
+
+            <!-- toolbar: sources -->
+            <Grid Grid.Row="0" Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Margin="0,0,6,0"
+                        Content="{loc:Loc AddFiles}"
+                        ToolTip="{loc:Loc AddFilesTip}"
+                        Command="{Binding AddFilesCommand}" />
+                <Button Grid.Column="1" Margin="0,0,12,0"
+                        Content="{loc:Loc AddFolder}"
+                        ToolTip="{loc:Loc AddFolderTip}"
+                        Command="{Binding AddFolderCommand}" />
+                <TextBlock Grid.Column="2"
+                           Style="{StaticResource SecondaryText}"
+                           VerticalAlignment="Center"
+                           Text="{Binding SelectedCountText}" />
+            </Grid>
+
+            <!-- toolbar: selection -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
+                <Button Margin="0,0,6,0"
+                        Content="{loc:Loc SelectAll}"
+                        ToolTip="{loc:Loc SelectAllTip}"
+                        Command="{Binding SelectAllCommand}" />
+                <Button Margin="0,0,6,0"
+                        Content="{loc:Loc DeselectAll}"
+                        ToolTip="{loc:Loc DeselectAllTip}"
+                        Command="{Binding DeselectAllCommand}" />
+                <Button Margin="0,0,6,0"
+                        Content="{loc:Loc Remove}"
+                        ToolTip="{loc:Loc RemoveTip}"
+                        Command="{Binding RemoveCheckedCommand}" />
+                <Button Content="{loc:Loc Clear}"
+                        ToolTip="{loc:Loc ClearTip}"
+                        Command="{Binding ClearCommand}" />
+            </StackPanel>
+
+            <TextBlock Grid.Row="2" Margin="2,0,0,6"
+                       Style="{StaticResource SecondaryText}"
+                       Text="{loc:Loc DropHint}" />
+
+            <!-- file table -->
+            <ListView x:Name="FileList"
+                      Grid.Row="3"
+                      AllowDrop="True"
+                      SelectionMode="Extended"
+                      ItemsSource="{Binding Files}"
+                      Drop="OnFilesDropped"
+                      DragOver="OnDragOver"
+                      SizeChanged="OnFileListSizeChanged">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
+                        <Setter Property="ToolTip" Value="{Binding FullPath}" />
+                        <Setter Property="ToolTipService.ShowDuration" Value="20000" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Status}" Value="Failed">
+                                <Setter Property="ToolTip" Value="{Binding Error}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ListView.ItemContainerStyle>
+
+                <ListView.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="{loc:Loc CtxOpenFolder}" Click="OnOpenContainingFolder" />
+                        <MenuItem Header="{loc:Loc CtxCopyPath}" Click="OnCopyPath" />
+                        <MenuItem Header="{loc:Loc CtxRemoveRows}" Click="OnRemoveHighlighted" />
+                    </ContextMenu>
+                </ListView.ContextMenu>
+
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn x:Name="CheckColumn" Width="36">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox HorizontalAlignment="Center"
+                                              Margin="0,4"
+                                              IsChecked="{Binding IsChecked, Mode=TwoWay,
+                                                          UpdateSourceTrigger=PropertyChanged}" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+
+                        <GridViewColumn x:Name="NameColumn"
+                                        Width="250"
+                                        Header="{loc:Loc ColumnName}">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}"
+                                               Margin="4,5"
+                                               TextTrimming="CharacterEllipsis" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+
+                        <GridViewColumn x:Name="StatusColumn"
+                                        Width="80"
+                                        Header="{loc:Loc ColumnStatus}">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Margin="4,5"
+                                               Text="{Binding Status, Converter={StaticResource StatusText}}"
+                                               Foreground="{Binding Status, Converter={StaticResource StatusBrush}}" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+
+                        <GridViewColumn x:Name="OutputColumn"
+                                        Width="320"
+                                        Header="{loc:Loc ColumnOutput}">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Margin="4,5"
+                                               Text="{Binding OutputPath}"
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               TextTrimming="CharacterEllipsis" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+
+            <!-- progress -->
+            <Grid Grid.Row="4" Margin="0,10,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Margin="0,0,10,0"
+                           Style="{StaticResource SecondaryText}">
+                    <Run Text="{loc:Loc Progress}" /><Run Text=": " /><Run Text="{Binding ProgressText, Mode=OneWay}" />
+                </TextBlock>
+                <ProgressBar Grid.Column="1"
+                             VerticalAlignment="Center"
+                             Minimum="0" Maximum="100"
+                             Value="{Binding ProgressValue, Mode=OneWay}" />
+            </Grid>
+
+            <TextBlock Grid.Row="5" Margin="2,0,0,4"
+                       Style="{StaticResource SecondaryText}"
+                       Text="{loc:Loc Log}" />
+
+            <TextBox x:Name="LogBox"
+                     Grid.Row="6"
+                     Style="{StaticResource LogTextBox}" />
+        </Grid>
+
+        <!-- ================= RIGHT: settings ================= -->
+        <Border Grid.Column="1"
+                Width="336"
+                Background="{DynamicResource PanelBackground}"
+                BorderBrush="{DynamicResource Divider}"
+                BorderThickness="1,0,0,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0"
+                           Margin="16,14,16,6"
+                           Style="{StaticResource HeadingText}"
+                           Text="{loc:Loc Options}" />
+
+                <ScrollViewer Grid.Row="1"
+                              Padding="16,0,12,0"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel IsEnabled="{Binding CanEditSettings}">
+
+                        <!-- ---------- 1. encoding ---------- -->
+                        <Expander IsExpanded="True" Header="{loc:Loc EncodingGroup}">
+                            <StackPanel>
+                                <Grid Style="{StaticResource SettingRow}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="76" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
+                                               Text="{loc:Loc Format}" />
+                                    <ComboBox Grid.Column="1"
+                                              ToolTip="{loc:Loc FormatTip}"
+                                              ItemsSource="{Binding Formats}"
+                                              ItemTemplate="{StaticResource CliItemTemplate}"
+                                              SelectedItem="{Binding Format}" />
+                                </Grid>
+
+                                <Grid Style="{StaticResource SettingRow}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="76" />
+                                        <ColumnDefinition Width="72" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
+                                               Text="{loc:Loc Quality}" />
+                                    <ctrl:NumericTextBox Grid.Column="1"
+                                                         Minimum="1" Maximum="100"
+                                                         ToolTip="{loc:Loc QualityTip}"
+                                                         IsEnabled="{Binding QualityEnabled}"
+                                                         Text="{Binding Quality, UpdateSourceTrigger=PropertyChanged}" />
+                                </Grid>
+
+                                <Grid Style="{StaticResource SettingRow}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="76" />
+                                        <ColumnDefinition Width="72" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox Grid.Column="0"
+                                              Content="{loc:Loc Quantization}"
+                                              ToolTip="{loc:Loc QuantizationTip}"
+                                              IsChecked="{Binding QuantizationEnabled}" />
+                                    <ctrl:NumericTextBox Grid.Column="1"
+                                                         Minimum="1" Maximum="100"
+                                                         ToolTip="{loc:Loc QuantizationTip}"
+                                                         IsEnabled="{Binding QuantizationInputEnabled}"
+                                                         Text="{Binding Quantization, UpdateSourceTrigger=PropertyChanged}" />
+                                </Grid>
+
+                                <Grid Style="{StaticResource SettingRow}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="76" />
+                                        <ColumnDefinition Width="72" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox Grid.Column="0"
+                                              Content="{loc:Loc Dithering}"
+                                              ToolTip="{loc:Loc DitheringTip}"
+                                              IsEnabled="{Binding DitheringToggleEnabled}"
+                                              IsChecked="{Binding DitheringEnabled}" />
+                                    <ctrl:NumericTextBox Grid.Column="1"
+                                                         Minimum="1" Maximum="100"
+                                                         ToolTip="{loc:Loc DitheringTip}"
+                                                         IsEnabled="{Binding DitheringInputEnabled}"
+                                                         Text="{Binding Dithering, UpdateSourceTrigger=PropertyChanged}" />
+                                </Grid>
+
+                                <Grid Style="{StaticResource SettingRow}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="88" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox Grid.Column="0"
+                                              Content="{loc:Loc Suffix}"
+                                              ToolTip="{loc:Loc SuffixTip}"
+                                              IsChecked="{Binding SuffixEnabled}" />
+                                    <TextBox Grid.Column="1"
+                                             ToolTip="{loc:Loc SuffixTip}"
+                                             IsEnabled="{Binding SuffixInputEnabled}"
+                                             Text="{Binding Suffix, UpdateSourceTrigger=PropertyChanged}" />
+                                </Grid>
+
+                                <TextBlock Style="{StaticResource SecondaryText}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,4"
+                                           Text="{loc:Loc SuffixBackupHint}"
+                                           Visibility="{Binding IsBackup, Converter={StaticResource BoolToVisible}}" />
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- ---------- 2. output location ---------- -->
+                        <Expander IsExpanded="True" Header="{loc:Loc OutputLocationGroup}">
+                            <StackPanel>
+                                <WrapPanel>
+                                    <RadioButton Style="{StaticResource SegmentedItem}"
+                                                 GroupName="OutputMode"
+                                                 Content="{loc:Loc OriginalDir}"
+                                                 ToolTip="{loc:Loc OriginalDirTip}"
+                                                 IsChecked="{Binding OutputMode, Mode=TwoWay,
+                                                             Converter={StaticResource EnumToBool},
+                                                             ConverterParameter=OriginalDir}" />
+                                    <RadioButton Style="{StaticResource SegmentedItem}"
+                                                 GroupName="OutputMode"
+                                                 Content="{loc:Loc SelectedDir}"
+                                                 ToolTip="{loc:Loc SelectedDirTip}"
+                                                 IsChecked="{Binding OutputMode, Mode=TwoWay,
+                                                             Converter={StaticResource EnumToBool},
+                                                             ConverterParameter=SelectedDir}" />
+                                </WrapPanel>
+
+                                <!-- Only meaningful for a selected directory, so it
+                                     is hidden rather than disabled in the other mode. -->
+                                <StackPanel Visibility="{Binding IsSelectedDir,
+                                                         Converter={StaticResource BoolToVisible}}">
+                                    <Grid Style="{StaticResource SettingRow}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0"
+                                                Margin="0,0,6,0"
+                                                Padding="8,5"
+                                                Background="{DynamicResource ControlBackground}"
+                                                BorderBrush="{DynamicResource ControlBorder}"
+                                                BorderThickness="1"
+                                                CornerRadius="4">
+                                            <TextBlock Text="{Binding OutputDirectoryDisplay}"
+                                                       ToolTip="{Binding OutputDirectoryDisplay}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Foreground="{DynamicResource TextSecondary}" />
+                                        </Border>
+                                        <Button Grid.Column="1"
+                                                Content="{loc:Loc Browse}"
+                                                Command="{Binding BrowseOutputCommand}" />
+                                    </Grid>
+                                    <CheckBox Margin="0,0,0,6"
+                                              Content="{loc:Loc PreserveStructure}"
+                                              ToolTip="{loc:Loc PreserveStructureTip}"
+                                              IsEnabled="{Binding PreserveStructureEnabled}"
+                                              IsChecked="{Binding PreserveStructure}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- ---------- 3. original files ---------- -->
+                        <Expander IsExpanded="True" Header="{loc:Loc OriginalFilesGroup}">
+                            <StackPanel>
+                                <WrapPanel>
+                                    <RadioButton Style="{StaticResource SegmentedItem}"
+                                                 GroupName="OriginalPolicy"
+                                                 Content="{loc:Loc Keep}"
+                                                 ToolTip="{loc:Loc KeepTip}"
+                                                 IsChecked="{Binding OriginalPolicy, Mode=TwoWay,
+                                                             Converter={StaticResource EnumToBool},
+                                                             ConverterParameter=Keep}" />
+                                    <RadioButton Style="{StaticResource SegmentedItem}"
+                                                 GroupName="OriginalPolicy"
+                                                 Content="{loc:Loc Backup}"
+                                                 ToolTip="{loc:Loc BackupTip}"
+                                                 IsChecked="{Binding OriginalPolicy, Mode=TwoWay,
+                                                             Converter={StaticResource EnumToBool},
+                                                             ConverterParameter=Backup}" />
+                                    <RadioButton Style="{StaticResource SegmentedItem}"
+                                                 GroupName="OriginalPolicy"
+                                                 Content="{loc:Loc Delete}"
+                                                 ToolTip="{loc:Loc DeleteTip}"
+                                                 IsChecked="{Binding OriginalPolicy, Mode=TwoWay,
+                                                             Converter={StaticResource EnumToBool},
+                                                             ConverterParameter=DeleteAfterVerifiedSuccess}" />
+                                </WrapPanel>
+
+                                <Grid Style="{StaticResource SettingRow}"
+                                      Visibility="{Binding IsBackup, Converter={StaticResource BoolToVisible}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="76" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
+                                               Text="{loc:Loc BackupSuffixLabel}" />
+                                    <TextBox Grid.Column="1"
+                                             Text="@backup"
+                                             IsReadOnly="True"
+                                             ToolTip="{loc:Loc BackupSuffixTip}"
+                                             Foreground="{DynamicResource TextDisabled}" />
+                                </Grid>
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- ---------- 4. size and resize ---------- -->
+                        <Expander IsExpanded="True" Header="{loc:Loc SizeGroup}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource FieldLabel}"
+                                           Margin="0,0,0,5"
+                                           Text="{loc:Loc ResizeMode}" />
+                                <WrapPanel>
+                                    <RadioButton Style="{StaticResource SegmentedItem}"
+                                                 GroupName="ResizeMode"
+                                                 Content="{loc:Loc ResizeNone}"
+                                                 ToolTip="{loc:Loc ResizeModeTip}"
+                                                 IsChecked="{Binding ResizeMode, Mode=TwoWay,
+                                                             Converter={StaticResource EnumToBool},
+                                                             ConverterParameter=None}" />
+                                    <RadioButton Style="{StaticResource SegmentedItem}"
+                                                 GroupName="ResizeMode"
+                                                 Content="{loc:Loc ResizeClassic}"
+                                                 ToolTip="{loc:Loc ResizeArgsTip}"
+                                                 IsChecked="{Binding ResizeMode, Mode=TwoWay,
+                                                             Converter={StaticResource EnumToBool},
+                                                             ConverterParameter=Classic}" />
+                                    <RadioButton Style="{StaticResource SegmentedItem}"
+                                                 GroupName="ResizeMode"
+                                                 Content="{loc:Loc ResizeBounds}"
+                                                 ToolTip="{loc:Loc SizeTip}"
+                                                 IsChecked="{Binding ResizeMode, Mode=TwoWay,
+                                                             Converter={StaticResource EnumToBool},
+                                                             ConverterParameter=Bounds}" />
+                                </WrapPanel>
+
+                                <Grid Style="{StaticResource SettingRow}"
+                                      Visibility="{Binding IsResizeClassic, Converter={StaticResource BoolToVisible}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="76" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
+                                               Text="{loc:Loc ResizeArgs}" />
+                                    <TextBox Grid.Column="1"
+                                             ToolTip="{loc:Loc ResizeArgsTip}"
+                                             Text="{Binding ResizeArgs, UpdateSourceTrigger=PropertyChanged}" />
+                                </Grid>
+
+                                <StackPanel Visibility="{Binding IsResizeBounds,
+                                                         Converter={StaticResource BoolToVisible}}">
+                                    <TextBlock Style="{StaticResource FieldLabel}"
+                                               Margin="0,2,0,5"
+                                               Text="{loc:Loc BoundDirection}" />
+                                    <WrapPanel>
+                                        <RadioButton Style="{StaticResource SegmentedItem}"
+                                                     GroupName="BoundDirection"
+                                                     Content="{loc:Loc BoundMax}"
+                                                     ToolTip="{loc:Loc SizeTip}"
+                                                     IsChecked="{Binding BoundDirection, Mode=TwoWay,
+                                                                 Converter={StaticResource EnumToBool},
+                                                                 ConverterParameter=Maximum}" />
+                                        <RadioButton Style="{StaticResource SegmentedItem}"
+                                                     GroupName="BoundDirection"
+                                                     Content="{loc:Loc BoundMin}"
+                                                     ToolTip="{loc:Loc SizeTip}"
+                                                     IsChecked="{Binding BoundDirection, Mode=TwoWay,
+                                                                 Converter={StaticResource EnumToBool},
+                                                                 ConverterParameter=Minimum}" />
+                                    </WrapPanel>
+
+                                    <TextBlock Style="{StaticResource FieldLabel}"
+                                               Margin="0,2,0,5"
+                                               Text="{loc:Loc BoundEdge}" />
+                                    <WrapPanel>
+                                        <RadioButton Style="{StaticResource SegmentedItem}"
+                                                     GroupName="BoundEdge"
+                                                     Content="{loc:Loc LongestEdge}"
+                                                     ToolTip="{loc:Loc SizeTip}"
+                                                     IsChecked="{Binding BoundEdge, Mode=TwoWay,
+                                                                 Converter={StaticResource EnumToBool},
+                                                                 ConverterParameter=Longest}" />
+                                        <RadioButton Style="{StaticResource SegmentedItem}"
+                                                     GroupName="BoundEdge"
+                                                     Content="{loc:Loc ShortestEdge}"
+                                                     ToolTip="{loc:Loc SizeTip}"
+                                                     IsChecked="{Binding BoundEdge, Mode=TwoWay,
+                                                                 Converter={StaticResource EnumToBool},
+                                                                 ConverterParameter=Shortest}" />
+                                    </WrapPanel>
+
+                                    <Grid Style="{StaticResource SettingRow}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="76" />
+                                            <ColumnDefinition Width="90" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
+                                                   Text="{loc:Loc BoundValue}" />
+                                        <ctrl:NumericTextBox Grid.Column="1"
+                                                             Minimum="1" Maximum="100000"
+                                                             ToolTip="{loc:Loc SizeTip}"
+                                                             Text="{Binding BoundValue, UpdateSourceTrigger=PropertyChanged}" />
+                                    </Grid>
+                                </StackPanel>
+
+                                <Grid Style="{StaticResource SettingRow}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="76" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
+                                               Text="{loc:Loc Filter}" />
+                                    <ComboBox Grid.Column="1"
+                                              ToolTip="{loc:Loc FilterTip}"
+                                              IsEnabled="{Binding FilterEnabled}"
+                                              ItemsSource="{Binding Filters}"
+                                              ItemTemplate="{StaticResource CliItemTemplate}"
+                                              SelectedItem="{Binding Filter}" />
+                                </Grid>
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- ---------- 5. execution ---------- -->
+                        <Expander IsExpanded="False" Header="{loc:Loc ExecutionGroup}">
+                            <StackPanel>
+                                <CheckBox Margin="0,0,0,8"
+                                          Content="{loc:Loc HiddenExecute}"
+                                          ToolTip="{loc:Loc HiddenExecuteTip}"
+                                          IsChecked="{Binding HiddenExecute}" />
+                                <CheckBox Margin="0,0,0,8"
+                                          Content="{loc:Loc AutoThreads}"
+                                          ToolTip="{loc:Loc ThreadsTip}"
+                                          IsChecked="{Binding AutoThreads}" />
+                                <Grid Style="{StaticResource SettingRow}"
+                                      Visibility="{Binding AutoThreads,
+                                                   Converter={StaticResource BoolToVisible},
+                                                   ConverterParameter=Invert}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="76" />
+                                        <ColumnDefinition Width="72" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
+                                               Text="{loc:Loc Threads}" />
+                                    <ctrl:NumericTextBox Grid.Column="1"
+                                                         Minimum="1" Maximum="256"
+                                                         ToolTip="{loc:Loc ThreadsTip}"
+                                                         IsEnabled="{Binding ThreadsInputEnabled}"
+                                                         Text="{Binding Threads, UpdateSourceTrigger=PropertyChanged}" />
+                                </Grid>
+                            </StackPanel>
+                        </Expander>
+
+                        <Border Height="12" Background="Transparent" />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- The single terminal action for the whole window. -->
+                <Border Grid.Row="2"
+                        Padding="16,10,16,14"
+                        BorderBrush="{DynamicResource Divider}"
+                        BorderThickness="0,1,0,0">
+                    <Button Style="{StaticResource AccentButton}"
+                            Content="{Binding StartButtonText}"
+                            ToolTip="{Binding StartButtonTip}"
+                            Command="{Binding StartCommand}" />
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

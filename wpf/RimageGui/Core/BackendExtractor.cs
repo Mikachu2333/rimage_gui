@@ -21,150 +21,79 @@ namespace RimageGui.Core
     /// GUI was written against.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The executable is carried as an embedded resource in Release builds and
-    /// unpacked into the per-user cache. Every launch re-hashes the cached copy
-    /// against the embedded bytes, so a truncated, tampered, or stale extraction
-    /// is replaced rather than executed. The version probe then runs once per
-    /// process: rimage's flags change between releases, and silently driving an
-    /// unexpected build is how batches lose files.
+    /// unpacked to a flat per-user path, <c>%LocalAppData%\rimage_gui\rimage.exe</c>
+    /// — no version or architecture component. Whether the copy already on disk
+    /// is usable is decided on every startup by its <c>--version</c> answer
+    /// matching <see cref="ExpectedVersion"/>; the constant is bumped by hand
+    /// together with the embedded binary. A missing, stale, corrupt, or foreign
+    /// copy simply answers wrong (or fails to start) and is replaced by the
+    /// embedded one, which also self-heals an x86/x64 mismatch since the wrong
+    /// architecture cannot start at all.
+    /// </para>
+    /// <para>
+    /// rimage's flags change between releases, and silently driving an
+    /// unexpected build is how batches lose files — hence the strict probe.
+    /// </para>
     /// </remarks>
     public static class BackendExtractor
     {
-        /// <summary>The only rimage build whose CLI surface this GUI targets.</summary>
+        /// <summary>
+        /// The latest rimage build this GUI is written against. Bump by hand
+        /// together with the embedded binary; it decides whether the on-disk
+        /// copy is current.
+        /// </summary>
         public const string ExpectedVersion = "rimage 0.13.0-1";
 
         private const string ResourceName = "RimageGui.rimage.exe";
 
-        private static readonly object Gate = new object();
-        private static bool _versionVerified;
-
         public static string Architecture => Environment.Is64BitProcess ? "x64" : "x86";
 
         /// <summary>
-        /// Extracts (if needed) and verifies the backend. Safe to call repeatedly;
-        /// the version probe is memoised, the extraction is not, so an executable
-        /// deleted underneath the app is restored.
+        /// Ensures the backend on disk answers <see cref="ExpectedVersion"/> and
+        /// returns its path. Safe to call repeatedly: a current copy short-circuits
+        /// with one version probe, anything else is re-extracted.
         /// </summary>
         public static Task<string> PrepareAsync(CancellationToken token = default)
         {
             return Task.Run(() =>
             {
-                var path = Extract();
+                var target = TargetPath();
 
-                lock (Gate)
+                if (File.Exists(target) && ProbesAsExpected(target))
                 {
-                    if (_versionVerified)
-                    {
-                        return path;
-                    }
+                    return target;
                 }
 
-                VerifyVersion(path);
-
-                lock (Gate)
-                {
-                    _versionVerified = true;
-                }
-
-                return path;
+                Extract(target);
+                VerifyVersion(target);
+                return target;
             }, token);
         }
 
-        private static string Extract()
+        private static string TargetPath()
         {
-            var cacheDirectory = Path.Combine(
+            return Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Mikachu2333", "RimageGUI", "cache",
-                AssemblyVersion(), Architecture);
+                "rimage_gui", "rimage.exe");
+        }
 
-            Directory.CreateDirectory(cacheDirectory);
-            var target = Path.Combine(cacheDirectory, "rimage.exe");
-
-            var expected = ComputeSourceHash();
-
-            if (File.Exists(target) && HashesEqual(FileHash(target), expected))
-            {
-                return target;
-            }
-
-            var temporary = Path.Combine(
-                cacheDirectory,
-                "rimage-" + Process.GetCurrentProcess().Id + "-" + Guid.NewGuid().ToString("N") + ".tmp");
-
+        private static bool ProbesAsExpected(string path)
+        {
             try
             {
-                using (var source = OpenBackendStream())
-                using (var destination = new FileStream(
-                           temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1 << 16))
-                {
-                    source.CopyTo(destination);
-                    destination.Flush(true);
-                }
-
-                if (!HashesEqual(FileHash(temporary), expected))
-                {
-                    throw new BackendException("backend hash verification failed after extraction");
-                }
-
-                Publish(temporary, target, expected);
+                return string.Equals(ProbeVersion(path), ExpectedVersion, StringComparison.Ordinal);
             }
             catch (Exception)
             {
-                TryDelete(temporary);
-                throw;
-            }
-
-            if (!File.Exists(target) || !HashesEqual(FileHash(target), expected))
-            {
-                throw new BackendException("backend hash verification failed");
-            }
-
-            return target;
-        }
-
-        /// <summary>
-        /// Moves the freshly written copy into place. A concurrent instance may
-        /// have published an identical file first, or may be holding the old one
-        /// open; both are fine as long as the bytes on disk match.
-        /// </summary>
-        private static void Publish(string temporary, string target, byte[] expected)
-        {
-            try
-            {
-                if (File.Exists(target))
-                {
-                    File.Replace(temporary, target, null, true);
-                }
-                else
-                {
-                    File.Move(temporary, target);
-                }
-
-                return;
-            }
-            catch (IOException)
-            {
-                if (File.Exists(target) && HashesEqual(FileHash(target), expected))
-                {
-                    TryDelete(temporary);
-                    return;
-                }
-
-                throw;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                if (File.Exists(target) && HashesEqual(FileHash(target), expected))
-                {
-                    TryDelete(temporary);
-                    return;
-                }
-
-                throw;
+                // Cannot start, timed out, or answered nothing — treat as stale.
+                return false;
             }
         }
 
-        private static void VerifyVersion(string path)
+        /// <summary>Runs <c>rimage --version</c> and returns the reported string.</summary>
+        private static string ProbeVersion(string path)
         {
             var startInfo = new ProcessStartInfo(path, "--version")
             {
@@ -199,6 +128,12 @@ namespace RimageGui.Core
                 }
             }
 
+            return reported;
+        }
+
+        private static void VerifyVersion(string path)
+        {
+            var reported = ProbeVersion(path);
             if (!string.Equals(reported, ExpectedVersion, StringComparison.Ordinal))
             {
                 throw new BackendException(
@@ -259,6 +194,92 @@ namespace RimageGui.Core
         }
 #endif
 
+        /// <summary>
+        /// Writes the embedded bytes to <paramref name="target"/> through a
+        /// temporary file whose contents are hash-checked before publishing.
+        /// </summary>
+        private static void Extract(string target)
+        {
+            var directory = Path.GetDirectoryName(target) ?? ".";
+            Directory.CreateDirectory(directory);
+
+            var expected = ComputeSourceHash();
+
+            var temporary = Path.Combine(
+                directory,
+                "rimage-" + Process.GetCurrentProcess().Id + "-" + Guid.NewGuid().ToString("N") + ".tmp");
+
+            try
+            {
+                using (var source = OpenBackendStream())
+                using (var destination = new FileStream(
+                           temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1 << 16))
+                {
+                    source.CopyTo(destination);
+                    destination.Flush(true);
+                }
+
+                if (!HashesEqual(FileHash(temporary), expected))
+                {
+                    throw new BackendException("backend hash verification failed after extraction");
+                }
+
+                Publish(temporary, target, expected);
+            }
+            catch (Exception)
+            {
+                TryDelete(temporary);
+                throw;
+            }
+
+            if (!File.Exists(target) || !HashesEqual(FileHash(target), expected))
+            {
+                throw new BackendException("backend hash verification failed");
+            }
+        }
+
+        /// <summary>
+        /// Moves the freshly written copy into place. A concurrent instance may
+        /// have published an identical file first, or may be holding the old one
+        /// open; both are fine as long as the bytes on disk match.
+        /// </summary>
+        private static void Publish(string temporary, string target, byte[] expected)
+        {
+            try
+            {
+                if (File.Exists(target))
+                {
+                    File.Replace(temporary, target, null, true);
+                }
+                else
+                {
+                    File.Move(temporary, target);
+                }
+
+                return;
+            }
+            catch (IOException)
+            {
+                if (File.Exists(target) && HashesEqual(FileHash(target), expected))
+                {
+                    TryDelete(temporary);
+                    return;
+                }
+
+                throw;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                if (File.Exists(target) && HashesEqual(FileHash(target), expected))
+                {
+                    TryDelete(temporary);
+                    return;
+                }
+
+                throw;
+            }
+        }
+
         private static byte[] ComputeSourceHash()
         {
             using (var stream = OpenBackendStream())
@@ -300,9 +321,6 @@ namespace RimageGui.Core
 
             return difference == 0;
         }
-
-        private static string AssemblyVersion() =>
-            Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0.0";
 
         private static void TryDelete(string path)
         {

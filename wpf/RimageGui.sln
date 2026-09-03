@@ -1,0 +1,27 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RimageGui", "RimageGui\RimageGui.csproj", "{6BDF4E9A-2C1D-4A62-9E7B-5C8A1D0F3A11}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RimageGui.Tests", "RimageGui.Tests\RimageGui.Tests.csproj", "{8A4C2F7B-3D95-4E31-B6A0-92F0C7D5E482}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6BDF4E9A-2C1D-4A62-9E7B-5C8A1D0F3A11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6BDF4E9A-2C1D-4A62-9E7B-5C8A1D0F3A11}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6BDF4E9A-2C1D-4A62-9E7B-5C8A1D0F3A11}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6BDF4E9A-2C1D-4A62-9E7B-5C8A1D0F3A11}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8A4C2F7B-3D95-4E31-B6A0-92F0C7D5E482}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8A4C2F7B-3D95-4E31-B6A0-92F0C7D5E482}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8A4C2F7B-3D95-4E31-B6A0-92F0C7D5E482}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8A4C2F7B-3D95-4E31-B6A0-92F0C7D5E482}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

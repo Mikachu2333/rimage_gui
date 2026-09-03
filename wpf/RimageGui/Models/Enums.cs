@@ -3,9 +3,11 @@ using System;
 namespace RimageGui.Models
 {
     /// <summary>
-    /// rimage encoder sub-command. <see cref="CliName"/> is the literal command
-    /// word; <see cref="Extension"/> must match what rimage actually writes,
-    /// because the output path is predicted from it before the job starts.
+    /// The encoders the GUI offers. Niche intermediate formats (qoi, ppm,
+    /// farbfeld) are deliberately not offered even though rimage supports them.
+    /// <see cref="CliName"/> is the literal command word; <see cref="Extension"/>
+    /// must match what rimage actually writes, because the output path is
+    /// predicted from it before the job starts.
     /// </summary>
     public enum OutputFormat
     {
@@ -15,8 +17,7 @@ namespace RimageGui.Models
         Png,
         WebP,
         Avif,
-        JpegXl,
-        Qoi
+        JpegXl
     }
 
     public enum ResizeFilter
@@ -77,8 +78,7 @@ namespace RimageGui.Models
             OutputFormat.Png,
             OutputFormat.WebP,
             OutputFormat.Avif,
-            OutputFormat.JpegXl,
-            OutputFormat.Qoi
+            OutputFormat.JpegXl
         };
 
         public static string CliName(this OutputFormat format)
@@ -92,7 +92,6 @@ namespace RimageGui.Models
                 case OutputFormat.WebP: return "webp";
                 case OutputFormat.Avif: return "avif";
                 case OutputFormat.JpegXl: return "jpeg_xl";
-                case OutputFormat.Qoi: return "qoi";
                 default: throw new ArgumentOutOfRangeException(nameof(format));
             }
         }
@@ -108,14 +107,13 @@ namespace RimageGui.Models
                 case OutputFormat.WebP: return "webp";
                 case OutputFormat.Avif: return "avif";
                 case OutputFormat.JpegXl: return "jxl";
-                case OutputFormat.Qoi: return "qoi";
                 default: throw new ArgumentOutOfRangeException(nameof(format));
             }
         }
 
         /// <summary>
         /// Whether the codec accepts <c>--quality</c>. The lossless encoders
-        /// (oxipng, png, jpeg_xl, qoi) reject it, so the GUI disables the field.
+        /// (oxipng, png, jpeg_xl) reject it, so the GUI disables the field.
         /// </summary>
         public static bool SupportsQuality(this OutputFormat format)
         {
@@ -127,6 +125,16 @@ namespace RimageGui.Models
                 case OutputFormat.Avif: return true;
                 default: return false;
             }
+        }
+
+        /// <summary>
+        /// Whether the codec exposes a switchable lossless mode. rimage 0.13
+        /// defines a <c>--lossless</c> flag only for WebP; the other lossless
+        /// codecs are always lossless and carry no flag at all.
+        /// </summary>
+        public static bool SupportsLossless(this OutputFormat format)
+        {
+            return format == OutputFormat.WebP;
         }
     }
 

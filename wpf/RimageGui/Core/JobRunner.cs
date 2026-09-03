@@ -36,6 +36,13 @@ namespace RimageGui.Core
         public int Total { get; set; }
     }
 
+    public sealed class FailedFile
+    {
+        public string Input { get; set; }
+
+        public string Error { get; set; }
+    }
+
     public sealed class JobSummary
     {
         public int Succeeded { get; set; }
@@ -45,6 +52,9 @@ namespace RimageGui.Core
         public int Skipped { get; set; }
 
         public bool Cancelled { get; set; }
+
+        /// <summary>Every failed input with its reason, for the end-of-run log.</summary>
+        public List<FailedFile> FailedItems { get; } = new List<FailedFile>();
     }
 
     /// <summary>
@@ -148,6 +158,11 @@ namespace RimageGui.Core
                         else
                         {
                             summary.Failed++;
+                            summary.FailedItems.Add(new FailedFile
+                            {
+                                Input = input,
+                                Error = result.Error
+                            });
                         }
 
                         progress?.Report(new JobReport

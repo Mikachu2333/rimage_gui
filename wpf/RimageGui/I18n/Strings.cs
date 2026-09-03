@@ -68,6 +68,11 @@ namespace RimageGui.I18n
                 "可拖放文件或文件夹；扫描在后台进行。",
                 "Drop files or folders here; scanning runs in the background."
             },
+            ["SkippedUnsupported"] = new[]
+            {
+                "（跳过 {0} 个不支持的文件）",
+                "({0} unsupported file(s) skipped)"
+            },
             ["AddFilesTip"] = new[]
             {
                 "选择一个或多个图片文件；新增项目默认勾选。",
@@ -135,9 +140,10 @@ namespace RimageGui.I18n
             ["Quality"] = new[] { "质量", "Quality" },
             ["QualityTip"] = new[]
             {
-                "编码质量，范围 1–100，数值越高体积越大。\nPNG 与 JPEG XL 为无损编码，不使用该参数（控件会自动禁用）。\n默认：85",
-                "Encoder quality, 1–100; higher means larger files.\nPNG and JPEG XL are lossless and ignore it (the box is disabled automatically).\nDefault: 85"
+                "编码质量，范围 1–100，数值越高体积越大。\n无损编码（PNG、JPEG XL）不使用该参数，控件会自动禁用并清空。\nWebP 质量 100 且未启用量化时，自动改用无损模式。\n默认：85",
+                "Encoder quality, 1–100; higher means larger files.\nLossless codecs (PNG, JPEG XL) ignore it; the box is disabled and cleared automatically.\nWebP at quality 100 with quantization off switches to the lossless mode automatically.\nDefault: 85"
             },
+            ["QualityLosslessTag"] = new[] { "无损", "Lossless" },
             ["Quantization"] = new[] { "量化", "Quantization" },
             ["QuantizationTip"] = new[]
             {
@@ -162,6 +168,42 @@ namespace RimageGui.I18n
                 "The Backup policy owns naming; checking the suffix switches the policy back to Keep."
             },
 
+            // ---- per-format notes (from the rimage codec table) ----
+            ["FormatHintMozJpeg"] = new[]
+            {
+                "MozJPEG：推荐的有损 JPEG 编码器，速度与压缩率的均衡选择，质量 60–80 效果最佳。",
+                "MozJPEG: the recommended lossy JPEG encoder; balanced speed and compression, best around quality 60–80."
+            },
+            ["FormatHintJpeg"] = new[]
+            {
+                "JPEG：标准 JPEG 编码器，质量 1–100，兼容性最好。",
+                "JPEG: the standard JPEG encoder, quality 1–100, maximum compatibility."
+            },
+            ["FormatHintOxiPng"] = new[]
+            {
+                "OxiPNG：无损 PNG 优化器，压缩已有 PNG 最安全，速度取决于压缩等级。",
+                "OxiPNG: lossless PNG optimizer; the safest way to shrink existing PNGs."
+            },
+            ["FormatHintPng"] = new[]
+            {
+                "PNG：无损编码，无质量参数。",
+                "PNG: lossless; no quality parameter."
+            },
+            ["FormatHintWebP"] = new[]
+            {
+                "WebP：有损质量 1–100；质量设为 100 且未启用量化时自动改用无损模式。",
+                "WebP: lossy quality 1–100; quality 100 with quantization off switches to the lossless mode automatically."
+            },
+            ["FormatHintAvif"] = new[]
+            {
+                "AVIF：仅静态图，压缩率高但编码较慢，默认质量 50。",
+                "AVIF: still images only; high compression but slow encoding, default quality 50."
+            },
+            ["FormatHintJpegXl"] = new[]
+            {
+                "JPEG XL：仅无损（rimage 0.13 未暴露质量参数），仅静态图。",
+                "JPEG XL: lossless only (rimage 0.13 exposes no quality knob), still images only."
+            },
             // ---- output location ----
             ["OriginalDir"] = new[] { "原目录", "Original directory" },
             ["SelectedDir"] = new[] { "指定目录", "Selected directory" },

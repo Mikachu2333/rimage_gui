@@ -11,19 +11,22 @@ namespace RimageGui.Core
     public static class FileScanner
     {
         /// <summary>
-        /// Extensions rimage 0.13 can decode. Encode-only formats are absent on
-        /// purpose: offering an input the backend will reject only produces
-        /// failures late, after the user has already queued a batch.
+        /// Extensions rimage 0.13 can decode and the GUI actually offers,
+        /// verified against the shipped backend on real and synthetic samples.
+        /// Deliberately absent: encode-only formats that the backend would only
+        /// reject late (offering them means failures after the user has already
+        /// queued a batch) and the niche intermediate formats qoi/ppm/farbfeld,
+        /// which the GUI neither accepts as input nor offers as output.
         /// </summary>
         private static readonly HashSet<string> SupportedExtensions =
             new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 ".jpg", ".jpeg", ".png", ".webp", ".avif", ".bmp",
-                ".tif", ".tiff", ".psd", ".qoi", ".jxl", ".hdr", ".ppm", ".ff"
+                ".tif", ".tiff", ".psd", ".jxl", ".hdr"
             };
 
         public static string FileDialogFilter =>
-            "Images|*.jpg;*.jpeg;*.png;*.webp;*.avif;*.bmp;*.tif;*.tiff;*.psd;*.qoi;*.jxl;*.hdr;*.ppm;*.ff|" +
+            "Images|*.jpg;*.jpeg;*.png;*.webp;*.avif;*.bmp;*.tif;*.tiff;*.psd;*.jxl;*.hdr|" +
             "All files|*.*";
 
         public static bool IsSupported(string path)
@@ -38,18 +41,28 @@ namespace RimageGui.Core
             }
         }
 
+        /// <summary>Outcome of one scan: the accepted paths and how many were filtered out.</summary>
+        public sealed class ScanResult
+        {
+            public List<string> Found { get; } = new List<string>();
+
+            public int Skipped { get; set; }
+        }
+
         /// <summary>
         /// Expands a mix of files and folders into absolute image paths.
-        /// Folders are walked depth-first; unreadable subtrees are skipped rather
+        /// Files whose extension is not supported are filtered out and counted;
+        /// folders are walked depth-first; unreadable subtrees are skipped rather
         /// than aborting a scan the user cannot otherwise complete.
         /// </summary>
         /// <param name="onProgress">Called with the running count, for status text.</param>
-        public static List<string> Collect(
+        public static ScanResult Collect(
             IEnumerable<string> roots,
             Action<int> onProgress,
             CancellationToken token)
         {
-            var found = new List<string>();
+            var result = new ScanResult();
+            var found = result.Found;
             var seen = new HashSet<string>(StringComparer.Ordinal);
             var pending = new Stack<string>();
 
@@ -66,9 +79,16 @@ namespace RimageGui.Core
                     {
                         pending.Push(Path.GetFullPath(root));
                     }
-                    else if (File.Exists(root) && IsSupported(root))
+                    else if (File.Exists(root))
                     {
-                        Add(found, seen, Path.GetFullPath(root), onProgress);
+                        if (IsSupported(root))
+                        {
+                            Add(found, seen, Path.GetFullPath(root), onProgress);
+                        }
+                        else
+                        {
+                            result.Skipped++;
+                        }
                     }
                 }
                 catch (Exception)
@@ -90,6 +110,10 @@ namespace RimageGui.Core
                         if (IsSupported(file))
                         {
                             Add(found, seen, file, onProgress);
+                        }
+                        else
+                        {
+                            result.Skipped++;
                         }
                     }
                 }
@@ -119,7 +143,7 @@ namespace RimageGui.Core
                 }
             }
 
-            return found;
+            return result;
         }
 
         private static void Add(List<string> found, HashSet<string> seen, string path, Action<int> onProgress)

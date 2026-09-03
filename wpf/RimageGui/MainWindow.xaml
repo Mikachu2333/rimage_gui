@@ -52,7 +52,7 @@
             </Grid.RowDefinitions>
 
             <!-- toolbar: sources -->
-            <Grid Grid.Row="0" Margin="0,0,0,6">
+            <Grid Grid.Row="0" Margin="0,0,0,8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
@@ -73,7 +73,7 @@
             </Grid>
 
             <!-- toolbar: selection -->
-            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
                 <Button Margin="0,0,6,0"
                         Content="{loc:Loc SelectAll}"
                         ToolTip="{loc:Loc SelectAllTip}"
@@ -91,7 +91,7 @@
                         Command="{Binding ClearCommand}" />
             </StackPanel>
 
-            <TextBlock Grid.Row="2" Margin="2,0,0,6"
+            <TextBlock Grid.Row="2" Margin="2,0,0,8"
                        Style="{StaticResource SecondaryText}"
                        Text="{loc:Loc DropHint}" />
 
@@ -226,7 +226,7 @@
                               HorizontalScrollBarVisibility="Disabled">
                     <StackPanel IsEnabled="{Binding CanEditSettings}">
 
-                        <!-- ---------- 1. encoding ---------- -->
+                        <!-- 1. encoding -->
                         <Expander IsExpanded="True" Header="{loc:Loc EncodingGroup}">
                             <StackPanel>
                                 <Grid Style="{StaticResource SettingRow}">
@@ -243,6 +243,11 @@
                                               SelectedItem="{Binding Format}" />
                                 </Grid>
 
+                                <TextBlock Style="{StaticResource SecondaryText}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,8"
+                                           Text="{Binding FormatHint}" />
+
                                 <Grid Style="{StaticResource SettingRow}">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="76" />
@@ -254,8 +259,30 @@
                                     <ctrl:NumericTextBox Grid.Column="1"
                                                          Minimum="1" Maximum="100"
                                                          ToolTip="{loc:Loc QualityTip}"
-                                                         IsEnabled="{Binding QualityEnabled}"
-                                                         Text="{Binding Quality, UpdateSourceTrigger=PropertyChanged}" />
+                                                         IsEnabled="{Binding QualityEnabled}">
+                                        <ctrl:NumericTextBox.Style>
+                                            <Style TargetType="ctrl:NumericTextBox"
+                                                   BasedOn="{StaticResource {x:Type TextBox}}">
+                                                <Setter Property="Text"
+                                                        Value="{Binding Quality, UpdateSourceTrigger=PropertyChanged}" />
+                                                <Style.Triggers>
+                                                    <!-- Clearing the visible text (not just disabling)
+                                                         is what makes "this codec has no quality" obvious. -->
+                                                    <DataTrigger Binding="{Binding QualityEnabled}" Value="False">
+                                                        <Setter Property="Text" Value="" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ctrl:NumericTextBox.Style>
+                                    </ctrl:NumericTextBox>
+                                    <TextBlock Grid.Column="2"
+                                               Margin="8,0,0,0"
+                                               VerticalAlignment="Center"
+                                               Style="{StaticResource SecondaryText}"
+                                               Text="{loc:Loc QualityLosslessTag}"
+                                               Visibility="{Binding QualityEnabled,
+                                                            Converter={StaticResource BoolToVisible},
+                                                            ConverterParameter=Invert}" />
                                 </Grid>
 
                                 <Grid Style="{StaticResource SettingRow}">
@@ -295,7 +322,7 @@
 
                                 <Grid Style="{StaticResource SettingRow}">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="88" />
+                                        <ColumnDefinition Width="76" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <CheckBox Grid.Column="0"
@@ -310,13 +337,13 @@
 
                                 <TextBlock Style="{StaticResource SecondaryText}"
                                            TextWrapping="Wrap"
-                                           Margin="0,0,0,4"
+                                           Margin="0,0,0,8"
                                            Text="{loc:Loc SuffixBackupHint}"
                                            Visibility="{Binding IsBackup, Converter={StaticResource BoolToVisible}}" />
                             </StackPanel>
                         </Expander>
 
-                        <!-- ---------- 2. output location ---------- -->
+                        <!-- 2. output location -->
                         <Expander IsExpanded="True" Header="{loc:Loc OutputLocationGroup}">
                             <StackPanel>
                                 <WrapPanel>
@@ -361,7 +388,7 @@
                                                 Content="{loc:Loc Browse}"
                                                 Command="{Binding BrowseOutputCommand}" />
                                     </Grid>
-                                    <CheckBox Margin="0,0,0,6"
+                                    <CheckBox Margin="0,0,0,8"
                                               Content="{loc:Loc PreserveStructure}"
                                               ToolTip="{loc:Loc PreserveStructureTip}"
                                               IsEnabled="{Binding PreserveStructureEnabled}"
@@ -370,7 +397,7 @@
                             </StackPanel>
                         </Expander>
 
-                        <!-- ---------- 3. original files ---------- -->
+                        <!-- 3. original files -->
                         <Expander IsExpanded="True" Header="{loc:Loc OriginalFilesGroup}">
                             <StackPanel>
                                 <WrapPanel>
@@ -414,7 +441,7 @@
                             </StackPanel>
                         </Expander>
 
-                        <!-- ---------- 4. size and resize ---------- -->
+                        <!-- 4. size and resize -->
                         <Expander IsExpanded="True" Header="{loc:Loc SizeGroup}">
                             <StackPanel>
                                 <TextBlock Style="{StaticResource FieldLabel}"
@@ -460,7 +487,7 @@
                                 <StackPanel Visibility="{Binding IsResizeBounds,
                                                          Converter={StaticResource BoolToVisible}}">
                                     <TextBlock Style="{StaticResource FieldLabel}"
-                                               Margin="0,2,0,5"
+                                               Margin="0,0,0,5"
                                                Text="{loc:Loc BoundDirection}" />
                                     <WrapPanel>
                                         <RadioButton Style="{StaticResource SegmentedItem}"
@@ -480,7 +507,7 @@
                                     </WrapPanel>
 
                                     <TextBlock Style="{StaticResource FieldLabel}"
-                                               Margin="0,2,0,5"
+                                               Margin="0,0,0,5"
                                                Text="{loc:Loc BoundEdge}" />
                                     <WrapPanel>
                                         <RadioButton Style="{StaticResource SegmentedItem}"
@@ -500,13 +527,13 @@
                                     </WrapPanel>
 
                                     <Grid Style="{StaticResource SettingRow}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="76" />
-                                            <ColumnDefinition Width="90" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
-                                                   Text="{loc:Loc BoundValue}" />
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="76" />
+                                        <ColumnDefinition Width="72" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
+                                               Text="{loc:Loc BoundValue}" />
                                         <ctrl:NumericTextBox Grid.Column="1"
                                                              Minimum="1" Maximum="100000"
                                                              ToolTip="{loc:Loc SizeTip}"
@@ -531,7 +558,7 @@
                             </StackPanel>
                         </Expander>
 
-                        <!-- ---------- 5. execution ---------- -->
+                        <!-- 5. execution -->
                         <Expander IsExpanded="False" Header="{loc:Loc ExecutionGroup}">
                             <StackPanel>
                                 <CheckBox Margin="0,0,0,8"

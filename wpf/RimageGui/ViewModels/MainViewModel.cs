@@ -251,8 +251,12 @@ namespace RimageGui.ViewModels
                 }
 
                 Raise(nameof(QualityEnabled));
+                Raise(nameof(FormatHint));
             }
         }
+
+        /// <summary>One-line capability note for the selected codec, from the rimage docs.</summary>
+        public string FormatHint => Loc.I["FormatHint" + Format];
 
         /// <summary>Lossless codecs reject <c>--quality</c>, so the field is disabled rather than ignored.</summary>
         public bool QualityEnabled => !IsRunning && _format.SupportsQuality();
@@ -661,12 +665,15 @@ namespace RimageGui.ViewModels
                 var progress = new Progress<int>(count =>
                     ProgressText = Loc.I["Scanning"] + " " + count);
 
-                var found = await Task.Run(
+                var result = await Task.Run(
                     () => FileScanner.Collect(roots, c => ((IProgress<int>)progress).Report(c), token),
                     token).ConfigureAwait(true);
 
-                AddPaths(found);
-                Log(Loc.I["SelectedCount"] + ": +" + found.Count);
+                AddPaths(result.Found);
+                Log(Loc.I["SelectedCount"] + ": +" + result.Found.Count +
+                    (result.Skipped > 0
+                        ? "  " + string.Format(CultureInfo.CurrentCulture, Loc.I["SkippedUnsupported"], result.Skipped)
+                        : string.Empty));
             }
             catch (OperationCanceledException)
             {
@@ -697,6 +704,15 @@ namespace RimageGui.ViewModels
             }
 
             await StartAsync().ConfigureAwait(true);
+        }
+
+        /// <summary>
+        /// Requests cancellation of a running job or scan; safe to call while idle.
+        /// </summary>
+        public void CancelJob()
+        {
+            _jobCancellation?.Cancel();
+            _scanCancellation?.Cancel();
         }
 
         private async Task StartAsync()
@@ -767,8 +783,18 @@ namespace RimageGui.ViewModels
                            summary.Skipped + " " + Loc.I["SummarySkipped"];
 
                 Log(text);
+
+                foreach (var failure in summary.FailedItems)
+                {
+                    Log(Loc.I["SummaryFailed"] + ": " + failure.Input +
+                        (!string.IsNullOrEmpty(failure.Error) ? " - " + failure.Error : string.Empty));
+                }
+
                 ProgressText = (summary.Cancelled ? Loc.I["Cancelled"] : Loc.I["Finished"]) + " " +
                                ProgressPercent() + "%";
+
+                // The run is over; the next one starts from a clean list.
+                Files.Clear();
             }
             catch (Exception exception)
             {

@@ -25,8 +25,18 @@ namespace RimageGui.Core
 
             if (options.Format.SupportsQuality())
             {
-                args.Add("--quality");
-                args.Add(options.Quality.ToString(invariant));
+                // Quality 100 with quantization off means "keep everything";
+                // where rimage has a true lossless mode, that beats the highest
+                // lossy setting — and the two flags cannot be combined.
+                if (options.Quality >= 100 && !options.Quantization.HasValue && options.Format.SupportsLossless())
+                {
+                    args.Add("--lossless");
+                }
+                else
+                {
+                    args.Add("--quality");
+                    args.Add(options.Quality.ToString(invariant));
+                }
             }
 
             if (options.OutputMode == OutputMode.SelectedDir &&

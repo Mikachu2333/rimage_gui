@@ -158,8 +158,9 @@ namespace RimageGui.Core
                 return path ?? string.Empty;
             }
 
-            var keep = (maxLength - 1) / 2;
-            return path.Substring(0, keep) + "…" + path.Substring(path.Length - keep);
+            var keepLeft = (maxLength - 1) / 2;
+            var keepRight = maxLength - keepLeft - 1;
+            return path.Substring(0, keepLeft) + "…" + path.Substring(path.Length - keepRight);
         }
     }
 }

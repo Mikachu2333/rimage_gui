@@ -42,7 +42,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- DataContractJsonSerializer, used to read rimage's --metadata output.
+    <!-- DataContractJsonSerializer, used to read the rimage metadata output.
          Microsoft.Win32.SystemEvents lives in System.dll on .NET Framework, so
          following live theme switches needs no extra reference. -->
     <Reference Include="System.Runtime.Serialization" />

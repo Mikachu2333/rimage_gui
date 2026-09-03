@@ -9,19 +9,24 @@
 -->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib"
+                    xmlns:ctrl="clr-namespace:RimageGui.Controls">
 
     <!-- ===================== metrics ===================== -->
 
-    <!-- Microsoft YaHei UI carries the CJK glyphs; Segoe UI covers Latin on
-         systems without it. Native text means no font atlas and no embedding. -->
+    <!-- Microsoft YaHei UI carries the CJK glyphs and ships with every Windows
+         SKU; Segoe UI/Tahoma cover systems where it is unavailable, so Latin
+         still renders on non-CJK installs. -->
     <FontFamily x:Key="AppFont">Microsoft YaHei UI, Segoe UI, Tahoma</FontFamily>
 
     <sys:Double x:Key="FontSizeNormal">13</sys:Double>
     <sys:Double x:Key="FontSizeSmall">12</sys:Double>
     <sys:Double x:Key="FontSizeHeading">16</sys:Double>
     <CornerRadius x:Key="ControlCorner">4</CornerRadius>
-    <sys:Double x:Key="RowHeight">28</sys:Double>
+    <!-- One control height shared by buttons, segmented items, combo boxes and
+         single-line text fields; 30px leaves room for YaHei UI's tall line box
+         inside the 1px border + 4px vertical padding without clipping. -->
+    <sys:Double x:Key="RowHeight">30</sys:Double>
 
     <!-- ===================== text ===================== -->
 
@@ -95,7 +100,7 @@
         <Setter Property="Background" Value="{DynamicResource ControlBackground}" />
         <Setter Property="BorderBrush" Value="{DynamicResource ControlBorder}" />
         <Setter Property="Padding" Value="12,5" />
-        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="MinHeight" Value="{StaticResource RowHeight}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="ToolTipService.ShowDuration" Value="30000" />
@@ -202,8 +207,8 @@
         <Setter Property="FontSize" Value="{DynamicResource FontSizeNormal}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         <Setter Property="Padding" Value="12,5" />
-        <Setter Property="Margin" Value="0,0,6,6" />
-        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="Margin" Value="0,0,6,8" />
+        <Setter Property="MinHeight" Value="{StaticResource RowHeight}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="ToolTipService.ShowDuration" Value="30000" />
@@ -337,8 +342,13 @@
         <Setter Property="BorderBrush" Value="{DynamicResource ControlBorder}" />
         <Setter Property="CaretBrush" Value="{DynamicResource TextPrimary}" />
         <Setter Property="SelectionBrush" Value="{DynamicResource AccentBackground}" />
-        <Setter Property="Padding" Value="7,4" />
-        <Setter Property="MinHeight" Value="28" />
+        <!-- PART_ContentHost clips at its viewport, so the vertical padding has
+             to stay small: YaHei UI's line box runs ~1.66x the font size, and
+             30px height - border - 2x2px padding leaves 24px for it. -->
+        <Setter Property="Padding" Value="7,2" />
+        <!-- One fixed control height for every single-line field, matching
+             Button/ComboBox/SegmentedItem, keeps the settings rows aligned. -->
+        <Setter Property="Height" Value="{StaticResource RowHeight}" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="ToolTipService.ShowDuration" Value="30000" />
@@ -379,8 +389,14 @@
         </Setter>
     </Style>
 
+    <!-- WPF matches implicit styles by exact type, so this subclass would
+         otherwise fall back to the stock Aero2 template and drift out of sync
+         with the plain TextBox rows. -->
+    <Style TargetType="ctrl:NumericTextBox" BasedOn="{StaticResource {x:Type TextBox}}" />
+
     <!-- Read-only, scrollable, monospaced sink for backend output. -->
     <Style x:Key="LogTextBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+        <Setter Property="Height" Value="Auto" />
         <Setter Property="Background" Value="{DynamicResource LogBackground}" />
         <Setter Property="FontFamily" Value="Consolas, Microsoft YaHei UI, monospace" />
         <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}" />
@@ -494,7 +510,7 @@
         <Setter Property="FontFamily" Value="{DynamicResource AppFont}" />
         <Setter Property="FontSize" Value="{DynamicResource FontSizeNormal}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="Height" Value="{StaticResource RowHeight}" />
         <Setter Property="Padding" Value="9,4" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="ToolTipService.ShowDuration" Value="30000" />
@@ -584,7 +600,7 @@
                                                   Fill="{DynamicResource TextSecondary}"
                                                   RenderTransformOrigin="0.5,0.5">
                                                 <Path.RenderTransform>
-                                                    <RotateTransform x:Name="GlyphRotation" Angle="0" />
+                                                    <RotateTransform Angle="0" />
                                                 </Path.RenderTransform>
                                             </Path>
                                             <ContentPresenter VerticalAlignment="Center"
@@ -594,7 +610,13 @@
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsChecked" Value="True">
-                                            <Setter TargetName="GlyphRotation" Property="Angle" Value="90" />
+                                            <!-- A named Freezable cannot be a trigger target,
+                                                 so the transform is swapped wholesale. -->
+                                            <Setter TargetName="Glyph" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <RotateTransform Angle="90" />
+                                                </Setter.Value>
+                                            </Setter>
                                         </Trigger>
                                         <Trigger Property="IsMouseOver" Value="True">
                                             <Setter TargetName="Glyph" Property="Fill"
@@ -855,6 +877,8 @@
     </Style>
 
     <Style TargetType="ContextMenu">
+        <Setter Property="FontFamily" Value="{DynamicResource AppFont}" />
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeNormal}" />
         <Setter Property="Background" Value="{DynamicResource ControlBackground}" />
         <Setter Property="BorderBrush" Value="{DynamicResource ControlBorder}" />
         <Setter Property="HasDropShadow" Value="True" />

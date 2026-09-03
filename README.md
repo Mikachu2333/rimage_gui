@@ -10,9 +10,11 @@ compression command line, built with WPF on .NET Framework 4.8.
 - Single-window layout: file list on the left, conversion settings on the right.
 - Add files or drop files/folders anywhere on the list; folders are scanned
   recursively in the background and unsupported extensions are filtered out.
-- All 10 rimage encoders (mozjpeg, jpeg, oxipng, png, webp, avif, jpeg_xl,
-  qoi, ppm, farbfeld). Formats without a quality parameter (the lossless
-  codecs) disable and clear the quality field automatically.
+- 7 practical rimage encoders — mozjpeg (jpg), jpeg (jpg), oxipng (png),
+  png (png), webp (webp), avif (avif) and jpeg_xl (jxl) — each labelled with
+  the extension it produces. Formats without a quality parameter (the lossless
+  codecs) disable and clear the quality field automatically. Niche intermediate
+  formats (qoi, ppm, farbfeld) are intentionally not offered.
 - Quality 100 (with no quantization set) on formats that have a lossless mode
   switches to the backend's `--lossless` flag automatically (WebP).
 - Output to the original directory or a chosen directory (optionally

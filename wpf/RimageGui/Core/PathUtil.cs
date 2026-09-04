@@ -122,12 +122,14 @@ namespace RimageGui.Core
         /// Strips trailing separators unless the path is a root such as
         /// <c>C:\</c>. rimage treats <c>D:\out\</c> and <c>D:\out</c> alike, but
         /// the shorter form avoids exercising its trailing-separator edge cases.
+        /// Null or whitespace normalizes to <see cref="string.Empty"/>, matching
+        /// <see cref="Key"/>.
         /// </summary>
         public static string NormalizeDirectory(string directory)
         {
             if (string.IsNullOrWhiteSpace(directory))
             {
-                return directory;
+                return string.Empty;
             }
 
             var trimmed = directory.Trim();
@@ -160,7 +162,7 @@ namespace RimageGui.Core
 
             var keepLeft = (maxLength - 1) / 2;
             var keepRight = maxLength - keepLeft - 1;
-            return path.Substring(0, keepLeft) + "…" + path.Substring(path.Length - keepRight);
+            return $"{path.Substring(0, keepLeft)}…{path.Substring(path.Length - keepRight)}";
         }
     }
 }

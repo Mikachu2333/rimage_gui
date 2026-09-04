@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -16,8 +18,15 @@ namespace RimageGui.Tests
     /// exercised together.
     /// </summary>
     [TestClass]
-    public class JobRunnerTests
+    public class JobRunnerSpecs
     {
+        private sealed class SyncProgress : IProgress<JobReport>
+        {
+            public List<JobReport> Reports { get; } = new List<JobReport>();
+
+            public void Report(JobReport value) => Reports.Add(value);
+        }
+
         private static string LocateBackend()
         {
             var directory = new DirectoryInfo(AppContext.BaseDirectory);
@@ -41,6 +50,14 @@ namespace RimageGui.Tests
             var backend = LocateBackend();
             if (backend == null)
             {
+                var requireBackend =
+                    !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI")) ||
+                    !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RIMAGEGUI_REQUIRE_BACKEND"));
+                if (requireBackend)
+                {
+                    Assert.Fail("res/rimage_x64.exe not found next to the test output; CI requires the backend");
+                }
+
                 Assert.Inconclusive("res/rimage_x64.exe not found next to the test output");
             }
 
@@ -49,11 +66,11 @@ namespace RimageGui.Tests
             try
             {
                 var good = Path.Combine(root, "good.bmp");
-                using (var bitmap = new System.Drawing.Bitmap(8, 8))
-                using (var graphics = System.Drawing.Graphics.FromImage(bitmap))
+                using (var bitmap = new Bitmap(8, 8))
+                using (var graphics = Graphics.FromImage(bitmap))
                 {
-                    graphics.Clear(System.Drawing.Color.Coral);
-                    bitmap.Save(good, System.Drawing.Imaging.ImageFormat.Bmp);
+                    graphics.Clear(Color.Coral);
+                    bitmap.Save(good, ImageFormat.Bmp);
                 }
 
                 var bad = Path.Combine(root, "bad.bmp");
@@ -68,13 +85,14 @@ namespace RimageGui.Tests
                     OriginalPolicy = OriginalPolicy.Keep,
                     ResizeMode = ResizeMode.None,
                     Threads = 1,
-                    Hidden = true
+                    HideBackendWindow = true
                 };
                 var job = new JobSpec(new[] { good, bad }, options);
 
-                var reports = new List<JobReport>();
+                var progress = new SyncProgress();
                 var summary = await JobRunner.RunAsync(
-                    job, backend, new Progress<JobReport>(reports.Add), CancellationToken.None);
+                    job, backend, progress, CancellationToken.None);
+                var reports = progress.Reports;
 
                 Assert.AreEqual(1, summary.Succeeded);
                 Assert.AreEqual(1, summary.Failed);

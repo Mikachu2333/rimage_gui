@@ -15,7 +15,7 @@ namespace RimageGui.Core
     /// </remarks>
     public static class FolderPicker
     {
-        /// <summary>Returns the chosen directory, or null when dismissed.</summary>
+        /// <summary>Returns the chosen directory, or empty string when dismissed or failed.</summary>
         public static string PickFolder(IntPtr owner, string title, string initialDirectory)
         {
             IFileDialog dialog = null;
@@ -38,22 +38,18 @@ namespace RimageGui.Core
                     TrySetInitialFolder(dialog, initialDirectory);
                 }
 
-                const int cancelled = unchecked((int)0x800704C7);
+                // Cancellation is also a non-zero HRESULT (0x800704C7), so one
+                // check covers both "cancelled" and "failed".
                 var result = dialog.Show(owner);
-                if (result == cancelled)
-                {
-                    return null;
-                }
-
                 if (result != 0)
                 {
-                    return null;
+                    return string.Empty;
                 }
 
                 dialog.GetResult(out var item);
                 if (item == null)
                 {
-                    return null;
+                    return string.Empty;
                 }
 
                 try
@@ -70,7 +66,7 @@ namespace RimageGui.Core
             {
                 // A shell failure here should not take the app down; the caller
                 // simply keeps the previously selected directory.
-                return null;
+                return string.Empty;
             }
             finally
             {

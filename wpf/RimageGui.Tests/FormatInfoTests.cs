@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RimageGui.Models;
 
@@ -10,13 +11,13 @@ namespace RimageGui.Tests
     /// collision checks and the fallback output path.
     /// </summary>
     [TestClass]
-    public class FormatInfoTests
+    public class FormatInfoSpecs
     {
         [TestMethod]
         public void AllFormats_AreListed()
         {
-            CollectionAssert.AllItemsAreUnique(FormatInfo.All);
-            Assert.AreEqual(7, FormatInfo.All.Length);
+            CollectionAssert.AllItemsAreUnique(FormatInfo.All.ToList());
+            Assert.AreEqual(7, FormatInfo.All.Count);
         }
 
         [TestMethod]
@@ -24,7 +25,7 @@ namespace RimageGui.Tests
         {
             CollectionAssert.AreEqual(
                 new[] { "mozjpeg", "jpeg", "oxipng", "png", "webp", "avif", "jpeg_xl" },
-                Array.ConvertAll(FormatInfo.All, format => format.CliName()));
+                FormatInfo.All.Select(format => format.CliName()).ToArray());
         }
 
         [TestMethod]
@@ -32,7 +33,7 @@ namespace RimageGui.Tests
         {
             var expected = new[] { "jpg", "jpg", "png", "png", "webp", "avif", "jxl" };
 
-            for (var index = 0; index < FormatInfo.All.Length; index++)
+            for (var index = 0; index < FormatInfo.All.Count; index++)
             {
                 Assert.AreEqual(expected[index], FormatInfo.All[index].Extension(),
                     FormatInfo.All[index].ToString());

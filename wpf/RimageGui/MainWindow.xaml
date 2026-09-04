@@ -204,7 +204,7 @@
 
         <!-- ================= RIGHT: settings ================= -->
         <Border Grid.Column="1"
-                Width="336"
+                Width="320"
                 Background="{DynamicResource PanelBackground}"
                 BorderBrush="{DynamicResource Divider}"
                 BorderThickness="1,0,0,0">
@@ -232,7 +232,7 @@
                                 <Grid Style="{StaticResource SettingRow}">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="76" />
-                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="160" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
                                                Text="{loc:Loc Format}" />
@@ -250,14 +250,15 @@
 
                                 <Grid Style="{StaticResource SettingRow}">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="76" />
-                                        <ColumnDefinition Width="72" />
-                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="60" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
-                                               Text="{loc:Loc Quality}" />
+                                               Text="{loc:Loc Quality}" Height="28" Padding="24,4,0,0"
+                                                         TextAlignment="Left" />
                                     <ctrl:NumericTextBox Grid.Column="1"
                                                          Minimum="1" Maximum="100"
+                                                         TextAlignment="Center"
                                                          ToolTip="{loc:Loc QualityTip}"
                                                          IsEnabled="{Binding QualityEnabled}">
                                         <ctrl:NumericTextBox.Style>
@@ -275,27 +276,19 @@
                                             </Style>
                                         </ctrl:NumericTextBox.Style>
                                     </ctrl:NumericTextBox>
-                                    <TextBlock Grid.Column="2"
-                                               Margin="8,0,0,0"
-                                               VerticalAlignment="Center"
-                                               Style="{StaticResource SecondaryText}"
-                                               Text="{loc:Loc QualityLosslessTag}"
-                                               Visibility="{Binding QualityEnabled,
-                                                            Converter={StaticResource BoolToVisible},
-                                                            ConverterParameter=Invert}" />
                                 </Grid>
 
                                 <Grid Style="{StaticResource SettingRow}">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="76" />
-                                        <ColumnDefinition Width="72" />
-                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="60" />
                                     </Grid.ColumnDefinitions>
                                     <CheckBox Grid.Column="0"
                                               Content="{loc:Loc Quantization}"
                                               ToolTip="{loc:Loc QuantizationTip}"
                                               IsChecked="{Binding QuantizationEnabled}" />
                                     <ctrl:NumericTextBox Grid.Column="1"
+                                                         TextAlignment="Center"
                                                          Minimum="1" Maximum="100"
                                                          ToolTip="{loc:Loc QuantizationTip}"
                                                          IsEnabled="{Binding QuantizationInputEnabled}"
@@ -304,9 +297,8 @@
 
                                 <Grid Style="{StaticResource SettingRow}">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="76" />
-                                        <ColumnDefinition Width="72" />
-                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="60" />
                                     </Grid.ColumnDefinitions>
                                     <CheckBox Grid.Column="0"
                                               Content="{loc:Loc Dithering}"
@@ -315,6 +307,7 @@
                                               IsChecked="{Binding DitheringEnabled}" />
                                     <ctrl:NumericTextBox Grid.Column="1"
                                                          Minimum="1" Maximum="100"
+                                                         TextAlignment="Center"
                                                          ToolTip="{loc:Loc DitheringTip}"
                                                          IsEnabled="{Binding DitheringInputEnabled}"
                                                          Text="{Binding Dithering, UpdateSourceTrigger=PropertyChanged}" />
@@ -322,8 +315,8 @@
 
                                 <Grid Style="{StaticResource SettingRow}">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="76" />
-                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="120" />
                                     </Grid.ColumnDefinitions>
                                     <CheckBox Grid.Column="0"
                                               Content="{loc:Loc Suffix}"
@@ -428,7 +421,7 @@
                                       Visibility="{Binding IsBackup, Converter={StaticResource BoolToVisible}}">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="76" />
-                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="120" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
                                                Text="{loc:Loc BackupSuffixLabel}" />
@@ -474,12 +467,14 @@
                                 <Grid Style="{StaticResource SettingRow}"
                                       Visibility="{Binding IsResizeClassic, Converter={StaticResource BoolToVisible}}">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="76" />
-                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="120" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
+                                    <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Padding="24,0,0,0"
+                                                         TextAlignment="Left" 
                                                Text="{loc:Loc ResizeArgs}" />
                                     <TextBox Grid.Column="1"
+                                             TextAlignment="Left"
                                              ToolTip="{loc:Loc ResizeArgsTip}"
                                              Text="{Binding ResizeArgs, UpdateSourceTrigger=PropertyChanged}" />
                                 </Grid>
@@ -527,15 +522,11 @@
                                     </WrapPanel>
 
                                     <Grid Style="{StaticResource SettingRow}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="76" />
-                                        <ColumnDefinition Width="72" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
                                                Text="{loc:Loc BoundValue}" />
                                         <ctrl:NumericTextBox Grid.Column="1"
                                                              Minimum="1" Maximum="100000"
+                                                             TextAlignment="Center"
                                                              ToolTip="{loc:Loc SizeTip}"
                                                              Text="{Binding BoundValue, UpdateSourceTrigger=PropertyChanged}" />
                                     </Grid>
@@ -543,10 +534,11 @@
 
                                 <Grid Style="{StaticResource SettingRow}">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="76" />
-                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="120" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
+                                    <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Padding="24,0,0,0"
+                                                         TextAlignment="Left" 
                                                Text="{loc:Loc Filter}" />
                                     <ComboBox Grid.Column="1"
                                               ToolTip="{loc:Loc FilterTip}"
@@ -564,7 +556,7 @@
                                 <CheckBox Margin="0,0,0,8"
                                           Content="{loc:Loc HiddenExecute}"
                                           ToolTip="{loc:Loc HiddenExecuteTip}"
-                                          IsChecked="{Binding HiddenExecute}" />
+                                          IsChecked="{Binding HideBackendWindow}" />
                                 <CheckBox Margin="0,0,0,8"
                                           Content="{loc:Loc AutoThreads}"
                                           ToolTip="{loc:Loc ThreadsTip}"

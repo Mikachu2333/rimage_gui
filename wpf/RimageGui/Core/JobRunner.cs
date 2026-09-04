@@ -10,53 +10,6 @@ using RimageGui.Models;
 
 namespace RimageGui.Core
 {
-    public enum JobReportKind
-    {
-        Log,
-        FileFinished,
-        Progress
-    }
-
-    public sealed class JobReport
-    {
-        public JobReportKind Kind { get; set; }
-
-        public string Line { get; set; }
-
-        public string Input { get; set; }
-
-        public FileStatus Status { get; set; }
-
-        public string Output { get; set; }
-
-        public string Error { get; set; }
-
-        public int Done { get; set; }
-
-        public int Total { get; set; }
-    }
-
-    public sealed class FailedFile
-    {
-        public string Input { get; set; }
-
-        public string Error { get; set; }
-    }
-
-    public sealed class JobSummary
-    {
-        public int Succeeded { get; set; }
-
-        public int Failed { get; set; }
-
-        public int Skipped { get; set; }
-
-        public bool Cancelled { get; set; }
-
-        /// <summary>Every failed input with its reason, for the end-of-run log.</summary>
-        public List<FailedFile> FailedItems { get; } = new List<FailedFile>();
-    }
-
     /// <summary>
     /// Drives rimage over a batch of inputs and reports per-file outcomes.
     /// </summary>
@@ -81,6 +34,15 @@ namespace RimageGui.Core
         /// <summary>Trailing stdout/stderr kept per chunk for failure diagnostics.</summary>
         private const int MaxDiagnosticChars = 8 * 1024;
 
+        /// <summary>How many chars of chunk diagnostics are copied into a file error.</summary>
+        private const int MaxResizeDiagnosticChars = 600;
+
+        /// <summary>Poll interval while waiting for a rimage process to exit.</summary>
+        private const int ProcessPollIntervalMilliseconds = 100;
+
+        /// <summary>Additional grace period after killing a process.</summary>
+        private const int CancellationGraceMilliseconds = 5000;
+
         public static async Task<JobSummary> RunAsync(
             JobSpec job,
             string backendPath,
@@ -92,18 +54,13 @@ namespace RimageGui.Core
             var total = files.Count;
             var options = job.Options;
 
-            progress?.Report(new JobReport
-            {
-                Kind = JobReportKind.Progress,
-                Done = 0,
-                Total = total
-            });
+            progress?.Report(new ProgressJobReport(0, total));
 
             var workingRoot = options.OutputMode == OutputMode.SelectedDir && options.PreserveStructure
                 ? CommonRoot(files)
                 : null;
 
-            var scratch = Path.Combine(Path.GetTempPath(), "rimage-gui-" + Guid.NewGuid().ToString("N"));
+            var scratch = Path.Combine(Path.GetTempPath(), $"rimage-gui-{Guid.NewGuid():N}");
             Directory.CreateDirectory(scratch);
 
             try
@@ -127,86 +84,28 @@ namespace RimageGui.Core
 
                     foreach (var input in chunk)
                     {
-                        progress?.Report(new JobReport
-                        {
-                            Kind = JobReportKind.FileFinished,
-                            Input = input,
-                            Status = FileStatus.Running
-                        });
+                        progress?.Report(new FileFinishedJobReport(input, FileStatus.Running));
                     }
 
-                    var outcome = await RunChunkAsync(
+                    var context = new ChunkContext(
                         chunk, options, backendPath, scratch, workingRoot,
-                        progress, !loggedCommand, token).ConfigureAwait(false);
+                        progress, !loggedCommand, token);
+                    var outcome = await RunChunkAsync(context).ConfigureAwait(false);
 
                     loggedCommand = true;
 
                     foreach (var input in chunk)
                     {
-                        var result = Resolve(input, options, outcome);
-
-                        if (result.Status == FileStatus.Done &&
-                            options.OriginalPolicy == OriginalPolicy.DeleteAfterVerifiedSuccess)
-                        {
-                            result = ApplyDeletePolicy(input, result, token.IsCancellationRequested);
-                        }
-
-                        if (result.Status == FileStatus.Done)
-                        {
-                            summary.Succeeded++;
-                        }
-                        else
-                        {
-                            summary.Failed++;
-                            summary.FailedItems.Add(new FailedFile
-                            {
-                                Input = input,
-                                Error = result.Error
-                            });
-                        }
-
-                        progress?.Report(new JobReport
-                        {
-                            Kind = JobReportKind.FileFinished,
-                            Input = input,
-                            Status = result.Status,
-                            Output = result.Output,
-                            Error = result.Error
-                        });
-
-                        if (result.Status == FileStatus.Failed && !string.IsNullOrEmpty(result.Error))
-                        {
-                            progress?.Report(new JobReport
-                            {
-                                Kind = JobReportKind.Log,
-                                Line = Path.GetFileName(input) + ": " + result.Error
-                            });
-                        }
+                        ProcessFileResult(input, options, outcome, token.IsCancellationRequested, summary, progress);
                     }
 
                     done += chunk.Count;
-                    progress?.Report(new JobReport
-                    {
-                        Kind = JobReportKind.Progress,
-                        Done = done,
-                        Total = total
-                    });
+                    progress?.Report(new ProgressJobReport(done, total));
                 }
 
                 if (token.IsCancellationRequested)
                 {
-                    summary.Cancelled = true;
-                    summary.Skipped = total - summary.Succeeded - summary.Failed;
-
-                    for (var index = total - summary.Skipped; index < total; index++)
-                    {
-                        progress?.Report(new JobReport
-                        {
-                            Kind = JobReportKind.FileFinished,
-                            Input = files[index],
-                            Status = FileStatus.Skipped
-                        });
-                    }
+                    ReportCancelledTail(files, total, summary, progress);
                 }
             }
             finally
@@ -232,6 +131,61 @@ namespace RimageGui.Core
             return (int)Math.Ceiling(total / (double)ProgressSteps);
         }
 
+        private static void ProcessFileResult(
+            string input,
+            ProcessingOptions options,
+            ChunkOutcome outcome,
+            bool cancelled,
+            JobSummary summary,
+            IProgress<JobReport> progress)
+        {
+            var result = Resolve(input, options, outcome);
+
+            if (result.Status == FileStatus.Done &&
+                options.OriginalPolicy == OriginalPolicy.DeleteAfterVerifiedSuccess)
+            {
+                result = ApplyDeletePolicy(input, result, cancelled);
+            }
+
+            if (result.Status == FileStatus.Done)
+            {
+                summary.Succeeded++;
+            }
+            else
+            {
+                summary.Failed++;
+                summary.FailedItems.Add(new FailedFile
+                {
+                    Input = input,
+                    Error = result.Error
+                });
+            }
+
+            progress?.Report(new FileFinishedJobReport(
+                input, result.Status, result.Output, result.Error));
+
+            if (result.Status == FileStatus.Failed && !string.IsNullOrEmpty(result.Error))
+            {
+                progress?.Report(new LogJobReport(
+                    $"{Path.GetFileName(input)}: {result.Error}"));
+            }
+        }
+
+        private static void ReportCancelledTail(
+            IReadOnlyList<string> files,
+            int total,
+            JobSummary summary,
+            IProgress<JobReport> progress)
+        {
+            summary.Cancelled = true;
+            summary.Skipped = total - summary.Succeeded - summary.Failed;
+
+            for (var index = total - summary.Skipped; index < total; index++)
+            {
+                progress?.Report(new FileFinishedJobReport(files[index], FileStatus.Skipped));
+            }
+        }
+
         private sealed class ChunkOutcome
         {
             public bool ProcessSucceeded { get; set; }
@@ -252,50 +206,77 @@ namespace RimageGui.Core
             public string Error { get; set; }
         }
 
-        private static async Task<ChunkOutcome> RunChunkAsync(
-            List<string> chunk,
-            ProcessingOptions options,
-            string backendPath,
-            string scratch,
-            string workingRoot,
-            IProgress<JobReport> progress,
-            bool logCommand,
-            CancellationToken token)
+        private sealed class ChunkContext
+        {
+            public ChunkContext(
+                List<string> chunk,
+                ProcessingOptions options,
+                string backendPath,
+                string scratch,
+                string workingRoot,
+                IProgress<JobReport> progress,
+                bool logCommand,
+                CancellationToken token)
+            {
+                Chunk = chunk;
+                Options = options;
+                BackendPath = backendPath;
+                Scratch = scratch;
+                WorkingRoot = workingRoot;
+                Progress = progress;
+                LogCommand = logCommand;
+                Token = token;
+            }
+
+            public List<string> Chunk { get; }
+
+            public ProcessingOptions Options { get; }
+
+            public string BackendPath { get; }
+
+            public string Scratch { get; }
+
+            public string WorkingRoot { get; }
+
+            public IProgress<JobReport> Progress { get; }
+
+            public bool LogCommand { get; }
+
+            public CancellationToken Token { get; }
+        }
+
+        private static async Task<ChunkOutcome> RunChunkAsync(ChunkContext context)
         {
             var outcome = new ChunkOutcome();
 
             // rimage recognises the input list by its literal file name, so each
             // chunk gets its own directory holding a file called "file.list".
-            var chunkDirectory = Path.Combine(scratch, Guid.NewGuid().ToString("N"));
+            var chunkDirectory = Path.Combine(context.Scratch, Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(chunkDirectory);
 
             var listPath = Path.Combine(chunkDirectory, "file.list");
             var metadataPath = Path.Combine(chunkDirectory, "metadata.json");
 
             // A BOM would become part of the first path rimage reads.
-            File.WriteAllText(listPath, string.Join("\r\n", chunk), new UTF8Encoding(false));
+            File.WriteAllText(listPath, string.Join("\r\n", context.Chunk), new UTF8Encoding(false));
 
-            var args = CommandBuilder.BuildArgs(options, listPath, metadataPath);
-            outcome.CommandLine = PathUtil.DisplayCommandLine(backendPath, args);
+            var args = CommandBuilder.BuildArgs(context.Options, listPath, metadataPath);
+            outcome.CommandLine = PathUtil.DisplayCommandLine(context.BackendPath, args);
 
-            if (logCommand)
+            if (context.LogCommand)
             {
-                progress?.Report(new JobReport
-                {
-                    Kind = JobReportKind.Log,
-                    Line = outcome.CommandLine
-                });
+                context.Progress?.Report(new LogJobReport(outcome.CommandLine));
             }
 
             // Redirecting is what feeds the in-app log, but it also swallows the
             // console the user asked to see when "hide rimage window" is off.
-            var redirect = options.Hidden;
+            var redirect = context.Options.HideBackendWindow;
 
-            var startInfo = new ProcessStartInfo(backendPath, PathUtil.BuildArgumentString(args))
+            var startInfo = new ProcessStartInfo(context.BackendPath, PathUtil.BuildArgumentString(args))
             {
                 UseShellExecute = false,
-                CreateNoWindow = options.Hidden,
-                WorkingDirectory = workingRoot ?? chunkDirectory,
+                CreateNoWindow = context.Options.HideBackendWindow,
+                WorkingDirectory = context.WorkingRoot ?? chunkDirectory,
                 RedirectStandardOutput = redirect,
                 RedirectStandardError = redirect
             };
@@ -329,11 +310,7 @@ namespace RimageGui.Core
                                 }
                             }
 
-                            progress?.Report(new JobReport
-                            {
-                                Kind = JobReportKind.Log,
-                                Line = e.Data
-                            });
+                            context.Progress?.Report(new LogJobReport(e.Data));
                         };
 
                         process.OutputDataReceived += onData;
@@ -348,15 +325,15 @@ namespace RimageGui.Core
                         process.BeginErrorReadLine();
                     }
 
-                    await WaitAsync(process, token).ConfigureAwait(false);
+                    await WaitAsync(process, context.Token).ConfigureAwait(false);
 
-                    outcome.ProcessSucceeded = !token.IsCancellationRequested && process.ExitCode == 0;
+                    outcome.ProcessSucceeded = !context.Token.IsCancellationRequested && process.ExitCode == 0;
                 }
             }
             catch (Exception exception)
             {
                 outcome.ProcessSucceeded = false;
-                diagnostic.AppendLine(exception.Message);
+                diagnostic.AppendLine(exception.ToString());
             }
 
             lock (diagnostic)
@@ -380,7 +357,7 @@ namespace RimageGui.Core
         /// </summary>
         private static async Task WaitAsync(Process process, CancellationToken token)
         {
-            while (!process.WaitForExit(100))
+            while (!process.WaitForExit(ProcessPollIntervalMilliseconds))
             {
                 if (!token.IsCancellationRequested)
                 {
@@ -396,7 +373,7 @@ namespace RimageGui.Core
                     // Exited between the poll and the kill.
                 }
 
-                process.WaitForExit(5000);
+                process.WaitForExit(CancellationGraceMilliseconds);
                 return;
             }
 
@@ -406,7 +383,7 @@ namespace RimageGui.Core
 
         private static FileResult Resolve(string input, ProcessingOptions options, ChunkOutcome outcome)
         {
-            if (outcome.ProcessSucceeded && outcome.Outputs != null &&
+            if (outcome.ProcessSucceeded &&
                 outcome.Outputs.TryGetValue(PathUtil.Key(input), out var reported) &&
                 IsUsableOutput(reported))
             {
@@ -428,7 +405,7 @@ namespace RimageGui.Core
 
             if (!string.IsNullOrEmpty(outcome.Diagnostic))
             {
-                error += "; " + Truncate(outcome.Diagnostic, 600);
+                error += $"; {Truncate(outcome.Diagnostic, MaxResizeDiagnosticChars)}";
             }
 
             return new FileResult { Status = FileStatus.Failed, Error = error };
@@ -458,7 +435,7 @@ namespace RimageGui.Core
                 {
                     Status = FileStatus.Failed,
                     Output = result.Output,
-                    Error = "output written but deleting the original failed: " + exception.Message
+                    Error = $"output written but deleting the original failed: {exception.Message}"
                 };
             }
         }
@@ -481,6 +458,13 @@ namespace RimageGui.Core
             }
         }
 
+        private static string[] SplitSegments(string file)
+        {
+            return (Path.GetDirectoryName(Path.GetFullPath(file)) ?? string.Empty)
+                .Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
+                    StringSplitOptions.RemoveEmptyEntries);
+        }
+
         /// <summary>
         /// Deepest directory containing every input, used as the working
         /// directory so rimage's <c>-r</c> mirrors the folder layout the user
@@ -493,16 +477,11 @@ namespace RimageGui.Core
                 return null;
             }
 
-            string[] Segments(string file) =>
-                (Path.GetDirectoryName(Path.GetFullPath(file)) ?? string.Empty)
-                .Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
-                    StringSplitOptions.RemoveEmptyEntries);
-
-            var common = Segments(files[0]);
+            var common = SplitSegments(files[0]);
 
             for (var index = 1; index < files.Count && common.Length > 0; index++)
             {
-                var current = Segments(files[index]);
+                var current = SplitSegments(files[index]);
                 var shared = 0;
                 var limit = Math.Min(common.Length, current.Length);
 
@@ -532,7 +511,7 @@ namespace RimageGui.Core
         }
 
         private static string Truncate(string value, int max) =>
-            value.Length <= max ? value : value.Substring(0, max) + "…";
+            value.Length <= max ? value : $"{value.Substring(0, max)}…";
 
         private static void TryDeleteDirectory(string path)
         {

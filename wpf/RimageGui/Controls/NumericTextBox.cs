@@ -73,7 +73,7 @@ namespace RimageGui.Controls
                 step *= 10;
             }
 
-            SetValueClamped(Current() + step);
+            SetValueClamped(ParseCurrent() + step);
             e.Handled = true;
         }
 
@@ -88,10 +88,10 @@ namespace RimageGui.Controls
 
         private void OnLostFocus(object sender, RoutedEventArgs e)
         {
-            SetValueClamped(Current());
+            SetValueClamped(ParseCurrent());
         }
 
-        private int Current()
+        private int ParseCurrent()
         {
             return int.TryParse(Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
                 ? value

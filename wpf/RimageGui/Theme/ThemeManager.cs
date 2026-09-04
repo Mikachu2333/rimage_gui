@@ -6,6 +6,18 @@ using Microsoft.Win32;
 
 namespace RimageGui.Theme
 {
+    /// <summary>Follows the Windows app theme for the application and its windows.</summary>
+    public interface IThemeService
+    {
+        bool IsDark { get; }
+
+        void Initialize();
+
+        void Shutdown();
+
+        void ApplyTitleBar(Window window);
+    }
+
     /// <summary>
     /// Follows the Windows app theme.
     /// </summary>
@@ -17,7 +29,7 @@ namespace RimageGui.Theme
     /// attribute does not exist before Windows 10 1809, where the call fails
     /// harmlessly and the title bar simply stays light.
     /// </remarks>
-    public static class ThemeManager
+    public sealed class ThemeService : IThemeService
     {
         private const string PersonalizeKey =
             @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
@@ -25,13 +37,13 @@ namespace RimageGui.Theme
         private const int DwmwaUseImmersiveDarkMode = 20;
         private const int DwmwaUseImmersiveDarkModeBefore20H1 = 19;
 
-        private static ResourceDictionary _palette;
-        private static bool _hooked;
+        private ResourceDictionary _palette;
+        private bool _hooked;
 
-        public static bool IsDark { get; private set; }
+        public bool IsDark { get; private set; }
 
         /// <summary>Reads the current preference; defaults to light when unset.</summary>
-        public static bool IsSystemDark()
+        private static bool IsSystemDark()
         {
             try
             {
@@ -56,7 +68,7 @@ namespace RimageGui.Theme
         /// Installs the palette and starts following system changes. Call once,
         /// before the main window is shown.
         /// </summary>
-        public static void Initialize()
+        public void Initialize()
         {
             Apply(IsSystemDark());
 
@@ -69,7 +81,7 @@ namespace RimageGui.Theme
             _hooked = true;
         }
 
-        public static void Shutdown()
+        public void Shutdown()
         {
             if (!_hooked)
             {
@@ -80,7 +92,7 @@ namespace RimageGui.Theme
             _hooked = false;
         }
 
-        private static void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+        private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
         {
             if (e.Category != UserPreferenceCategory.General)
             {
@@ -88,7 +100,7 @@ namespace RimageGui.Theme
             }
 
             // Raised on a system thread; the dictionary swap must be on the UI one.
-            Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+            Application.Current?.Dispatcher.BeginInvoke((Action)(() =>
             {
                 var dark = IsSystemDark();
                 if (dark == IsDark && _palette != null)
@@ -105,7 +117,7 @@ namespace RimageGui.Theme
             }));
         }
 
-        private static void Apply(bool dark)
+        private void Apply(bool dark)
         {
             var application = Application.Current;
             if (application == null)
@@ -116,7 +128,7 @@ namespace RimageGui.Theme
             var source = dark ? "Dark" : "Light";
             var replacement = new ResourceDictionary
             {
-                Source = new Uri("pack://application:,,,/Theme/Palette." + source + ".xaml", UriKind.Absolute)
+                Source = new Uri($"pack://application:,,,/Theme/Palette.{source}.xaml", UriKind.Absolute)
             };
 
             var merged = application.Resources.MergedDictionaries;
@@ -136,7 +148,7 @@ namespace RimageGui.Theme
         }
 
         /// <summary>Paints the non-client title bar to match the current theme.</summary>
-        public static void ApplyTitleBar(Window window)
+        public void ApplyTitleBar(Window window)
         {
             try
             {
@@ -150,7 +162,7 @@ namespace RimageGui.Theme
                 if (DwmSetWindowAttribute(handle, DwmwaUseImmersiveDarkMode, ref enabled, sizeof(int)) != 0)
                 {
                     // Windows 10 builds before 20H1 used a different ordinal.
-                    DwmSetWindowAttribute(
+                    _ = DwmSetWindowAttribute(
                         handle, DwmwaUseImmersiveDarkModeBefore20H1, ref enabled, sizeof(int));
                 }
             }

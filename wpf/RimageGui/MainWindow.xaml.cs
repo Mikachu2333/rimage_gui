@@ -1,6 +1,8 @@
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
@@ -18,7 +20,7 @@ namespace RimageGui
     /// context menu and the log box. Decisions stay in the view model; this
     /// class only translates user gestures into view-model calls.
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, IDisposable
     {
         /// <summary>Oldest lines are dropped once the log grows past this.</summary>
         private const int MaxLogLines = 2000;
@@ -28,52 +30,67 @@ namespace RimageGui
 
         private const double CheckColumnWidth = 36;
         private const double StatusColumnWidth = 80;
+        private const double TableLayoutPadding = 12;
+        private const double NameColumnRatio = 0.42;
 
         private readonly MainViewModel _viewModel;
+        private readonly IThemeService _themeService;
 
         public MainWindow()
+            : this(new ThemeService())
+        {
+        }
+
+        public MainWindow(IThemeService themeService)
         {
             InitializeComponent();
 
+            _themeService = themeService;
             _viewModel = new MainViewModel();
             DataContext = _viewModel;
 
             WireViewModelHooks();
 
             Loaded += OnLoaded;
-            SourceInitialized += (_, __) => ThemeManager.ApplyTitleBar(this);
+            SourceInitialized += (_, __) => _themeService.ApplyTitleBar(this);
         }
 
         private void WireViewModelHooks()
         {
-            _viewModel.RequestAddFiles += PickInputFiles;
-            _viewModel.RequestAddFolder += PickInputFolder;
-            _viewModel.RequestBrowseOutput += PickOutputDirectory;
+            _viewModel.RequestAddFiles = PickInputFilesAsync;
+            _viewModel.RequestAddFolder = PickInputFolderAsync;
+            _viewModel.RequestBrowseOutput = PickOutputDirectory;
             _viewModel.ShowError = ShowMessageBox;
             _viewModel.Confirm = ConfirmDialog;
             _viewModel.LogAppended += AppendLog;
         }
 
-        private async void OnLoaded(object sender, RoutedEventArgs e)
+        private void OnLoaded(object sender, RoutedEventArgs e)
         {
             // The backend probe runs once per process; logging its result here
             // means the user sees the version verdict before any job starts.
             Loaded -= OnLoaded;
-            await _viewModel.InitializeBackendAsync();
+            _viewModel.RunSafely(() => _viewModel.InitializeBackendAsync());
         }
 
-        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        protected override void OnClosing(CancelEventArgs e)
         {
             // A running rimage would otherwise outlive the window that spawned it.
             _viewModel.CancelJob();
             base.OnClosing(e);
         }
 
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+            _viewModel.Dispose();
+        }
+
         // ------------------------------------------------------------------
         // view model hooks
         // ------------------------------------------------------------------
 
-        private async void PickInputFiles()
+        private async Task PickInputFilesAsync()
         {
             var dialog = new Microsoft.Win32.OpenFileDialog
             {
@@ -89,7 +106,7 @@ namespace RimageGui
             }
         }
 
-        private async void PickInputFolder()
+        private async Task PickInputFolderAsync()
         {
             var path = PickFolder(Loc.I["AddFolder"]);
             if (!string.IsNullOrEmpty(path))
@@ -146,7 +163,10 @@ namespace RimageGui
                 var offset = LogBox.GetCharacterIndexFromLineIndex(keepFrom);
                 if (offset > 0)
                 {
-                    LogBox.Text = LogBox.Text.Substring(offset);
+                    // Replacing the selected range avoids building an explicit
+                    // substring and lets the TextBox manage its own text storage.
+                    LogBox.Select(0, offset);
+                    LogBox.SelectedText = string.Empty;
                 }
             }
 
@@ -169,7 +189,7 @@ namespace RimageGui
         {
             if (e.Data.GetData(DataFormats.FileDrop) is string[] paths && paths.Length > 0)
             {
-                _ = _viewModel.AddFromPathsAsync(paths);
+                _viewModel.RunSafely(() => _viewModel.AddFromPathsAsync(paths));
             }
 
             e.Handled = true;
@@ -187,7 +207,7 @@ namespace RimageGui
                             - CheckColumnWidth
                             - StatusColumnWidth
                             - SystemParameters.VerticalScrollBarWidth
-                            - 12;
+                            - TableLayoutPadding;
 
             const double minimumName = 160;
             const double minimumOutput = 120;
@@ -196,7 +216,7 @@ namespace RimageGui
                 return;
             }
 
-            var nameWidth = Math.Floor(available * 0.42);
+            var nameWidth = Math.Floor(available * NameColumnRatio);
             NameColumn.Width = nameWidth;
             OutputColumn.Width = Math.Floor(available - nameWidth);
         }
@@ -214,7 +234,7 @@ namespace RimageGui
 
             try
             {
-                Process.Start("explorer.exe", "/select,\"" + entry.FullPath + "\"");
+                Process.Start("explorer.exe", $"/select,\"{entry.FullPath}\"");
             }
             catch (Exception exception)
             {

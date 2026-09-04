@@ -12,7 +12,7 @@ namespace RimageGui.Tests
     /// every option can produce is pinned here against rimage 0.13's syntax.
     /// </summary>
     [TestClass]
-    public class CommandBuilderTests
+    public class CommandBuilderSpecs
     {
         private static ProcessingOptions Base() => new ProcessingOptions
         {
@@ -29,7 +29,7 @@ namespace RimageGui.Tests
             ResizeArgs = null,
             Filter = ResizeFilter.Lanczos3,
             Threads = 4,
-            Hidden = true
+            HideBackendWindow = true
         };
 
         private static List<string> Build(ProcessingOptions options)

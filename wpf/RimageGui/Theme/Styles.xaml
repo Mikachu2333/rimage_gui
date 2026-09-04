@@ -41,7 +41,7 @@
     <Style x:Key="HeadingText" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{DynamicResource AppFont}" />
         <Setter Property="FontSize" Value="{DynamicResource FontSizeHeading}" />
-        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
     </Style>
@@ -159,8 +159,8 @@
         <Setter Property="Background" Value="{DynamicResource AccentBackground}" />
         <Setter Property="Foreground" Value="{DynamicResource AccentForeground}" />
         <Setter Property="BorderBrush" Value="{DynamicResource AccentBackground}" />
-        <Setter Property="FontSize" Value="15" />
-        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="MinHeight" Value="40" />
         <Setter Property="Template">
             <Setter.Value>
@@ -214,7 +214,7 @@
         <Setter Property="FontFamily" Value="{DynamicResource AppFont}" />
         <Setter Property="FontSize" Value="{DynamicResource FontSizeNormal}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-        <Setter Property="Padding" Value="12,5" />
+        <Setter Property="Padding" Value="16,5" />
         <Setter Property="Margin" Value="0,0,6,8" />
         <Setter Property="MinHeight" Value="{StaticResource RowHeight}" />
         <Setter Property="Cursor" Value="Hand" />
@@ -249,7 +249,7 @@
                             <Setter TargetName="Root" Property="BorderBrush"
                                     Value="{DynamicResource AccentBackground}" />
                             <Setter Property="Foreground" Value="{DynamicResource AccentForeground}" />
-                            <Setter Property="FontWeight" Value="SemiBold" />
+                            <Setter Property="FontWeight" Value="Bold" />
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="Root" Property="BorderBrush"
@@ -353,7 +353,7 @@
         <!-- PART_ContentHost clips at its viewport, so the vertical padding has
              to stay small: YaHei UI's line box runs ~1.66x the font size, and
              30px height - border - 2x2px padding leaves 24px for it. -->
-        <Setter Property="Padding" Value="7,2" />
+        <Setter Property="Padding" Value="4,2" />
         <!-- One fixed control height for every single-line field, matching
              Button/ComboBox/SegmentedItem, keeps the settings rows aligned. -->
         <Setter Property="Height" Value="{StaticResource RowHeight}" />
@@ -612,7 +612,7 @@
                                                 </Path.RenderTransform>
                                             </Path>
                                             <ContentPresenter VerticalAlignment="Center"
-                                                              TextBlock.FontWeight="SemiBold"
+                                                              TextBlock.FontWeight="Bold"
                                                               TextBlock.Foreground="{DynamicResource TextPrimary}" />
                                         </StackPanel>
                                     </Border>

@@ -7,28 +7,6 @@ using RimageGui.Models;
 
 namespace RimageGui.Core
 {
-    public sealed class ValidationResult
-    {
-        private ValidationResult(string messageKey, string detail)
-        {
-            MessageKey = messageKey;
-            Detail = detail;
-        }
-
-        public static readonly ValidationResult Ok = new ValidationResult(null, null);
-
-        public static ValidationResult Fail(string messageKey, string detail = null) =>
-            new ValidationResult(messageKey, detail);
-
-        public bool IsValid => MessageKey == null;
-
-        /// <summary>Catalog key for the localized message.</summary>
-        public string MessageKey { get; }
-
-        /// <summary>Optional path or value appended after the message.</summary>
-        public string Detail { get; }
-    }
-
     public static class Validator
     {
         private static readonly string[] ReservedDeviceNames =
@@ -40,6 +18,8 @@ namespace RimageGui.Core
 
         private static readonly char[] InvalidComponentChars =
             { '/', '\\', ':', '*', '?', '"', '<', '>', '|' };
+
+        private static readonly char[] ResizeSeparators = { ' ', '\t' };
 
         /// <summary>
         /// Whether a string is usable as part of a Windows file name. Reserved
@@ -177,7 +157,7 @@ namespace RimageGui.Core
                 : (Path.GetDirectoryName(input) ?? ".");
 
             var stem = Path.GetFileNameWithoutExtension(input);
-            var name = stem + (options.Suffix ?? string.Empty) + "." + options.Format.Extension();
+            var name = $"{stem}{options.Suffix ?? string.Empty}.{options.Format.Extension()}";
             return Path.Combine(directory ?? ".", name);
         }
 
@@ -244,7 +224,7 @@ namespace RimageGui.Core
                 return false;
             }
 
-            foreach (var part in input.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries))
+            foreach (var part in input.Split(ResizeSeparators, StringSplitOptions.RemoveEmptyEntries))
             {
                 if (!NormalizeResizeArg(part, out var normalized))
                 {
@@ -280,7 +260,7 @@ namespace RimageGui.Core
                 if (double.TryParse(value.Substring(1).Trim(), NumberStyles.Float, invariant, out var factor) &&
                     factor > 0 && !double.IsInfinity(factor))
                 {
-                    normalized = "@" + factor.ToString(invariant);
+                    normalized = $"@{factor.ToString(invariant)}";
                     return true;
                 }
 
@@ -293,7 +273,7 @@ namespace RimageGui.Core
                 if (double.TryParse(body, NumberStyles.Float, invariant, out var percent) &&
                     percent > 0 && !double.IsInfinity(percent))
                 {
-                    normalized = percent.ToString(invariant) + "%";
+                    normalized = $"{percent.ToString(invariant)}%";
                     return true;
                 }
 
@@ -321,7 +301,7 @@ namespace RimageGui.Core
                 // "720x" and "720x_" both anchor the width and let the height follow.
                 if (heightPart.Length == 0 || heightPart == "_")
                 {
-                    normalized = width.ToString(invariant) + "w";
+                    normalized = $"{width.ToString(invariant)}w";
                     return true;
                 }
 
@@ -330,7 +310,7 @@ namespace RimageGui.Core
                     return false;
                 }
 
-                normalized = width.ToString(invariant) + "x" + height.ToString(invariant);
+                normalized = $"{width.ToString(invariant)}x{height.ToString(invariant)}";
                 return true;
             }
 

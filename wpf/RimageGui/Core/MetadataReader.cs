@@ -32,8 +32,9 @@ namespace RimageGui.Core
 
         /// <summary>
         /// Maps normalised input key to the output path rimage reported.
-        /// Returns null when the file is missing or unparsable, which the caller
-        /// treats as "no metadata" rather than "no outputs".
+        /// Missing or unparsable metadata yields an empty dictionary, matching the
+        /// "collection never returns null" rule; callers can distinguish "no
+        /// metadata" from "no outputs" only when they check process success.
         /// </summary>
         public static Dictionary<string, string> LoadOutputMap(string path)
         {
@@ -41,7 +42,7 @@ namespace RimageGui.Core
             {
                 if (!File.Exists(path))
                 {
-                    return null;
+                    return new Dictionary<string, string>(StringComparer.Ordinal);
                 }
 
                 using (var stream = File.OpenRead(path))
@@ -50,7 +51,7 @@ namespace RimageGui.Core
                     var dto = (MetadataDto)serializer.ReadObject(stream);
                     if (dto?.Images == null)
                     {
-                        return null;
+                        return new Dictionary<string, string>(StringComparer.Ordinal);
                     }
 
                     var map = new Dictionary<string, string>(dto.Images.Length, StringComparer.Ordinal);
@@ -72,7 +73,7 @@ namespace RimageGui.Core
             {
                 // Corrupt or partially written metadata is a normal outcome when
                 // rimage was killed mid-run, so it is not an error path.
-                return null;
+                return new Dictionary<string, string>(StringComparer.Ordinal);
             }
         }
     }

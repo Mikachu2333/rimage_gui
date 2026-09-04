@@ -7,6 +7,9 @@
     <RootNamespace>RimageGui</RootNamespace>
     <AssemblyName>rimage-gui</AssemblyName>
     <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
     <Platforms>AnyCPU;x64;x86</Platforms>
     <ApplicationIcon>..\..\icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>

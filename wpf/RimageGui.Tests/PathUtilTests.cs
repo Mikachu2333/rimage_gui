@@ -7,7 +7,7 @@ using RimageGui.Core;
 namespace RimageGui.Tests
 {
     [TestClass]
-    public class PathUtilTests
+    public class PathUtilSpecs
     {
         [TestMethod]
         public void PlainArguments_StayUnquoted()
@@ -71,7 +71,8 @@ namespace RimageGui.Tests
             Assert.AreEqual("C:\\out", PathUtil.NormalizeDirectory(@"C:\out\"));
             Assert.AreEqual("C:\\out", PathUtil.NormalizeDirectory(@"C:\out\\"));
             Assert.AreEqual("C:\\", PathUtil.NormalizeDirectory(@"C:\"));
-            Assert.IsNull(PathUtil.NormalizeDirectory(null));
+            Assert.AreEqual(string.Empty, PathUtil.NormalizeDirectory(null));
+            Assert.AreEqual(string.Empty, PathUtil.NormalizeDirectory("   "));
         }
 
         [TestMethod]

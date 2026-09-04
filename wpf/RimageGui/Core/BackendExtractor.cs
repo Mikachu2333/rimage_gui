@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -9,13 +10,6 @@ using System.Threading.Tasks;
 
 namespace RimageGui.Core
 {
-    public sealed class BackendException : Exception
-    {
-        public BackendException(string message, Exception inner = null) : base(message, inner)
-        {
-        }
-    }
-
     /// <summary>
     /// Materialises the rimage backend on disk and proves it is the build this
     /// GUI was written against.
@@ -47,6 +41,8 @@ namespace RimageGui.Core
         public const string ExpectedVersion = "rimage 0.13.0-1";
 
         private const string ResourceName = "RimageGui.rimage.exe";
+
+        private const int VersionTimeoutMilliseconds = 15000;
 
         public static string Architecture => Environment.Is64BitProcess ? "x64" : "x86";
 
@@ -112,19 +108,25 @@ namespace RimageGui.Core
                     throw new BackendException("the rimage backend could not be started");
                 }
 
-                reported = process.StandardOutput.ReadToEnd().Trim();
-                process.StandardError.ReadToEnd();
+                // Start both reads before waiting so a stderr-filled pipe cannot
+                // block the stdout read and deadlock the version probe.
+                var stdoutTask = process.StandardOutput.ReadToEndAsync();
+                var stderrTask = process.StandardError.ReadToEndAsync();
 
-                if (!process.WaitForExit(15000))
+                if (!process.WaitForExit(VersionTimeoutMilliseconds))
                 {
                     TryKill(process);
                     throw new BackendException("the rimage backend did not answer --version");
                 }
 
+                var stdout = stdoutTask.GetAwaiter().GetResult();
+                stderrTask.GetAwaiter().GetResult();
+                reported = stdout.Trim();
+
                 if (process.ExitCode != 0)
                 {
                     throw new BackendException(
-                        "the rimage backend exited with code " + process.ExitCode + " for --version");
+                        $"the rimage backend exited with code {process.ExitCode} for --version");
                 }
             }
 
@@ -137,8 +139,7 @@ namespace RimageGui.Core
             if (!string.Equals(reported, ExpectedVersion, StringComparison.Ordinal))
             {
                 throw new BackendException(
-                    "unsupported rimage version: expected \"" + ExpectedVersion +
-                    "\" but found \"" + reported + "\"");
+                    $"unsupported rimage version: expected \"{ExpectedVersion}\" but found \"{reported}\"");
             }
         }
 
@@ -147,6 +148,8 @@ namespace RimageGui.Core
         /// the repository's res/ copy during development so inner-loop builds do
         /// not have to re-embed 25 MB on every compile.
         /// </summary>
+        [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance",
+            Justification = "The EMBED_BACKEND path returns a non-FileStream resource stream.")]
         private static Stream OpenBackendStream()
         {
 #if EMBED_BACKEND
@@ -162,8 +165,7 @@ namespace RimageGui.Core
             if (path == null)
             {
                 throw new BackendException(
-                    "this build does not embed rimage and res\\rimage_" + Architecture +
-                    ".exe was not found; build with -p:Platform=x64 -c Release to embed it");
+                    $"this build does not embed rimage and res\\rimage_{Architecture}.exe was not found; build with -p:Platform=x64 -c Release to embed it");
             }
 
             return File.OpenRead(path);
@@ -173,7 +175,7 @@ namespace RimageGui.Core
 #if !EMBED_BACKEND
         private static string LocateDevelopmentBackend()
         {
-            var name = "rimage_" + Architecture + ".exe";
+            var name = $"rimage_{Architecture}.exe";
             var directory = new DirectoryInfo(
                 Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".");
 
@@ -207,7 +209,7 @@ namespace RimageGui.Core
 
             var temporary = Path.Combine(
                 directory,
-                "rimage-" + Process.GetCurrentProcess().Id + "-" + Guid.NewGuid().ToString("N") + ".tmp");
+                $"rimage-{Process.GetCurrentProcess().Id}-{Guid.NewGuid():N}.tmp");
 
             try
             {
@@ -258,17 +260,8 @@ namespace RimageGui.Core
 
                 return;
             }
-            catch (IOException)
-            {
-                if (File.Exists(target) && HashesEqual(FileHash(target), expected))
-                {
-                    TryDelete(temporary);
-                    return;
-                }
-
-                throw;
-            }
-            catch (UnauthorizedAccessException)
+            catch (Exception exception) when (
+                exception is IOException || exception is UnauthorizedAccessException)
             {
                 if (File.Exists(target) && HashesEqual(FileHash(target), expected))
                 {

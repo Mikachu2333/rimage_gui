@@ -7,7 +7,7 @@ using RimageGui.Models;
 namespace RimageGui.Tests
 {
     [TestClass]
-    public class ValidatorTests
+    public class ValidatorSpecs
     {
         private static ProcessingOptions Base() => new ProcessingOptions
         {

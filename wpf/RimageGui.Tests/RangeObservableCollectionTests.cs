@@ -7,7 +7,7 @@ using RimageGui.Core;
 namespace RimageGui.Tests
 {
     [TestClass]
-    public class RangeObservableCollectionTests
+    public class RangeObservableCollectionSpecs
     {
         private sealed class RecordedChanges
         {
@@ -25,6 +25,8 @@ namespace RimageGui.Tests
                         break;
                     case NotifyCollectionChangedAction.Reset: Resets++;
                         break;
+                    default:
+                        throw new InvalidOperationException("Unexpected collection change: " + e.Action);
                 }
             }
         }

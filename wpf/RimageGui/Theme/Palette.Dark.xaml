@@ -16,7 +16,7 @@
     <SolidColorBrush x:Key="ControlBackgroundDisabled" Color="#2A2A2A" />
     <SolidColorBrush x:Key="ControlBorder" Color="#3F3F3F" />
     <SolidColorBrush x:Key="ControlBorderHover" Color="#585858" />
-    <SolidColorBrush x:Key="FocusBorder" Color="#4CC2FF" />
+    <SolidColorBrush x:Key="FocusBorder" Color="#ABABAB" />
 
     <!-- text -->
     <SolidColorBrush x:Key="TextPrimary" Color="#EDEDED" />
@@ -24,9 +24,9 @@
     <SolidColorBrush x:Key="TextDisabled" Color="#6E6E6E" />
 
     <!-- accent -->
-    <SolidColorBrush x:Key="AccentBackground" Color="#4CC2FF" />
-    <SolidColorBrush x:Key="AccentBackgroundHover" Color="#69CDFF" />
-    <SolidColorBrush x:Key="AccentBackgroundPressed" Color="#3AAFE8" />
+    <SolidColorBrush x:Key="AccentBackground" Color="#EDEDED" />
+    <SolidColorBrush x:Key="AccentBackgroundHover" Color="#ABABAB" />
+    <SolidColorBrush x:Key="AccentBackgroundPressed" Color="#6E6E6E" />
     <SolidColorBrush x:Key="AccentForeground" Color="#0A1B26" />
 
     <!-- file table -->

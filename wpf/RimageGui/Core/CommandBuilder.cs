@@ -145,6 +145,10 @@ namespace RimageGui.Core
                     args.Add(options.Filter.CliName());
                     return;
                 }
+
+                default:
+                    throw new ArgumentOutOfRangeException(
+                        nameof(options), options.ResizeMode, "Unexpected resize mode.");
             }
         }
     }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
 
 namespace RimageGui.Core
 {
@@ -53,10 +54,11 @@ namespace RimageGui.Core
             }
 
             CheckReentrancy();
+            var doomedSet = doomed as ISet<T> ?? new HashSet<T>(doomed);
             var kept = new List<T>(Items.Count);
             foreach (var item in Items)
             {
-                if (!doomed.Contains(item))
+                if (!doomedSet.Contains(item))
                 {
                     kept.Add(item);
                 }
@@ -78,8 +80,8 @@ namespace RimageGui.Core
 
         private void RaiseReset()
         {
-            OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(Count)));
-            OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs("Item[]"));
+            OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
+            OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
             OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
         }
     }

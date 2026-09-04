@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -14,27 +14,31 @@ using RimageGui.Models;
 
 namespace RimageGui.ViewModels
 {
-    public sealed class MainViewModel : INotifyPropertyChanged
+    public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     {
         private readonly Dictionary<FileEntry, bool> _checkedShadow = new Dictionary<FileEntry, bool>();
+        private readonly OptionsViewModel _options = new OptionsViewModel();
 
         private CancellationTokenSource _jobCancellation;
         private CancellationTokenSource _scanCancellation;
         private string _backendPath;
+        private readonly Lazy<Task<string>> _backendTask = new Lazy<Task<string>>(
+            () => BackendExtractor.PrepareAsync(), LazyThreadSafetyMode.ExecutionAndPublication);
 
         public MainViewModel()
         {
             Files = new RangeObservableCollection<FileEntry>();
             Files.CollectionChanged += OnFilesChanged;
+            _options.PropertyChanged += (_, e) => Raise(e.PropertyName);
 
-            AddFilesCommand = new RelayCommand(() => RequestAddFiles?.Invoke(), () => !IsRunning);
-            AddFolderCommand = new RelayCommand(() => RequestAddFolder?.Invoke(), () => !IsRunning);
+            AddFilesCommand = new RelayCommand(() => RunSafely(RequestAddFiles), () => !IsRunning);
+            AddFolderCommand = new RelayCommand(() => RunSafely(RequestAddFolder), () => !IsRunning);
             BrowseOutputCommand = new RelayCommand(() => RequestBrowseOutput?.Invoke(), () => !IsRunning);
             SelectAllCommand = new RelayCommand(() => SetAllChecked(true), () => !IsRunning && TotalCount > 0);
             DeselectAllCommand = new RelayCommand(() => SetAllChecked(false), () => !IsRunning && TotalCount > 0);
             RemoveCheckedCommand = new RelayCommand(RemoveChecked, () => !IsRunning && CheckedCount > 0);
             ClearCommand = new RelayCommand(ClearFiles, () => !IsRunning && TotalCount > 0);
-            StartCommand = new RelayCommand(() => _ = ToggleRunAsync());
+            StartCommand = new RelayCommand(() => RunSafely(ToggleRunAsync));
         }
 
         // ------------------------------------------------------------------
@@ -43,11 +47,15 @@ namespace RimageGui.ViewModels
         // below stay testable without a window.
         // ------------------------------------------------------------------
 
-        public Action RequestAddFiles;
-        public Action RequestAddFolder;
-        public Action RequestBrowseOutput;
-        public Action<string, string> ShowError;
-        public Func<string, bool> Confirm;
+        public Func<Task> RequestAddFiles { get; set; }
+
+        public Func<Task> RequestAddFolder { get; set; }
+
+        public Action RequestBrowseOutput { get; set; }
+
+        public Action<string, string> ShowError { get; set; }
+
+        public Func<string, bool> Confirm { get; set; }
         public event Action<string> LogAppended;
 
         public RangeObservableCollection<FileEntry> Files { get; }
@@ -94,7 +102,7 @@ namespace RimageGui.ViewModels
         }
 
         public string SelectedCountText =>
-            Loc.I["SelectedCount"] + ": " + CheckedCount + "/" + TotalCount;
+            $"{Loc.I["SelectedCount"]}: {CheckedCount}/{TotalCount}";
 
         public void AddPaths(IReadOnlyList<string> paths)
         {
@@ -234,331 +242,212 @@ namespace RimageGui.ViewModels
         // encoding
         // ------------------------------------------------------------------
 
-        public OutputFormat[] Formats => FormatInfo.All;
+        [SuppressMessage("Performance", "CA1822:MarkMembersAsStatic",
+            Justification = "WPF data binding requires an instance property.")]
+        public IReadOnlyList<OutputFormat> Formats => _options.Formats;
 
-        public ResizeFilter[] Filters => FilterInfo.All;
-
-        private OutputFormat _format = OutputFormat.MozJpeg;
+        [SuppressMessage("Performance", "CA1822:MarkMembersAsStatic",
+            Justification = "WPF data binding requires an instance property.")]
+        public IReadOnlyList<ResizeFilter> Filters => _options.Filters;
 
         public OutputFormat Format
         {
-            get => _format;
+            get => _options.Format;
             set
             {
-                if (!Set(ref _format, value))
+                if (Format == value)
                 {
                     return;
                 }
 
+                _options.Format = value;
                 Raise(nameof(QualityEnabled));
                 Raise(nameof(FormatHint));
             }
         }
 
-        /// <summary>One-line capability note for the selected codec, from the rimage docs.</summary>
-        public string FormatHint => Loc.I["FormatHint" + Format];
+        public string FormatHint => _options.FormatHint;
 
         /// <summary>Lossless codecs reject <c>--quality</c>, so the field is disabled rather than ignored.</summary>
-        public bool QualityEnabled => !IsRunning && _format.SupportsQuality();
-
-        private int _quality = 85;
+        public bool QualityEnabled => !IsRunning && _options.Format.SupportsQuality();
 
         public int Quality
         {
-            get => _quality;
-            set => Set(ref _quality, value);
+            get => _options.Quality;
+            set => _options.Quality = value;
         }
-
-        private bool _quantizationEnabled;
 
         public bool QuantizationEnabled
         {
-            get => _quantizationEnabled;
-            set
-            {
-                if (!Set(ref _quantizationEnabled, value))
-                {
-                    return;
-                }
-
-                Raise(nameof(QuantizationInputEnabled));
-                Raise(nameof(DitheringToggleEnabled));
-                Raise(nameof(DitheringInputEnabled));
-            }
+            get => _options.QuantizationEnabled;
+            set => _options.QuantizationEnabled = value;
         }
 
-        public bool QuantizationInputEnabled => !IsRunning && _quantizationEnabled;
-
-        private int _quantization = 90;
+        public bool QuantizationInputEnabled => !IsRunning && _options.QuantizationInputEnabled;
 
         public int Quantization
         {
-            get => _quantization;
-            set => Set(ref _quantization, value);
+            get => _options.Quantization;
+            set => _options.Quantization = value;
         }
-
-        private bool _ditheringEnabled;
 
         public bool DitheringEnabled
         {
-            get => _ditheringEnabled;
-            set
-            {
-                if (!Set(ref _ditheringEnabled, value))
-                {
-                    return;
-                }
-
-                Raise(nameof(DitheringInputEnabled));
-            }
+            get => _options.DitheringEnabled;
+            set => _options.DitheringEnabled = value;
         }
 
-        /// <summary>rimage only applies dithering alongside quantization.</summary>
-        public bool DitheringToggleEnabled => !IsRunning && _quantizationEnabled;
+        public bool DitheringToggleEnabled => !IsRunning && _options.DitheringToggleEnabled;
 
-        public bool DitheringInputEnabled => DitheringToggleEnabled && _ditheringEnabled;
-
-        private int _dithering = 90;
+        public bool DitheringInputEnabled => !IsRunning && _options.DitheringInputEnabled;
 
         public int Dithering
         {
-            get => _dithering;
-            set => Set(ref _dithering, value);
+            get => _options.Dithering;
+            set => _options.Dithering = value;
         }
-
-        private bool _suffixEnabled = true;
-        private bool _savedSuffixEnabled = true;
 
         public bool SuffixEnabled
         {
-            get => _suffixEnabled;
-            set
-            {
-                if (!Set(ref _suffixEnabled, value))
-                {
-                    return;
-                }
-
-                // Backup already renames the original; a suffix on top would give
-                // one file two naming schemes, so enabling it drops the policy
-                // back to Keep instead of producing a rejected combination.
-                if (value && _originalPolicy == OriginalPolicy.Backup)
-                {
-                    OriginalPolicy = OriginalPolicy.Keep;
-                }
-
-                Raise(nameof(SuffixInputEnabled));
-            }
+            get => _options.SuffixEnabled;
+            set => _options.SuffixEnabled = value;
         }
 
-        public bool SuffixInputEnabled => !IsRunning && _suffixEnabled;
-
-        private string _suffix = "_new";
+        public bool SuffixInputEnabled => !IsRunning && _options.SuffixInputEnabled;
 
         public string Suffix
         {
-            get => _suffix;
-            set => Set(ref _suffix, value);
+            get => _options.Suffix;
+            set => _options.Suffix = value;
         }
 
         // ------------------------------------------------------------------
         // output location
         // ------------------------------------------------------------------
 
-        private OutputMode _outputMode = OutputMode.OriginalDir;
-
         public OutputMode OutputMode
         {
-            get => _outputMode;
+            get => _options.OutputMode;
             set
             {
-                if (!Set(ref _outputMode, value))
+                if (OutputMode == value)
                 {
                     return;
                 }
 
-                Raise(nameof(IsSelectedDir));
+                _options.OutputMode = value;
                 Raise(nameof(PreserveStructureEnabled));
             }
         }
 
-        public bool IsSelectedDir => _outputMode == OutputMode.SelectedDir;
-
-        private string _outputDirectory;
+        public bool IsSelectedDir => _options.IsSelectedDir;
 
         public string OutputDirectory
         {
-            get => _outputDirectory;
-            set
-            {
-                if (!Set(ref _outputDirectory, value))
-                {
-                    return;
-                }
-
-                Raise(nameof(OutputDirectoryDisplay));
-            }
+            get => _options.OutputDirectory;
+            set => _options.OutputDirectory = value;
         }
 
-        public string OutputDirectoryDisplay =>
-            string.IsNullOrEmpty(_outputDirectory)
-                ? Loc.I["OutputDirPlaceholder"]
-                : _outputDirectory;
-
-        private bool _preserveStructure;
+        public string OutputDirectoryDisplay => _options.OutputDirectoryDisplay;
 
         public bool PreserveStructure
         {
-            get => _preserveStructure;
-            set => Set(ref _preserveStructure, value);
+            get => _options.PreserveStructure;
+            set => _options.PreserveStructure = value;
         }
 
-        public bool PreserveStructureEnabled => !IsRunning && IsSelectedDir;
+        public bool PreserveStructureEnabled => !IsRunning && _options.IsSelectedDir;
 
         // ------------------------------------------------------------------
         // original files
         // ------------------------------------------------------------------
 
-        private OriginalPolicy _originalPolicy = OriginalPolicy.Keep;
-
         public OriginalPolicy OriginalPolicy
         {
-            get => _originalPolicy;
-            set
-            {
-                var previous = _originalPolicy;
-                if (!Set(ref _originalPolicy, value))
-                {
-                    return;
-                }
-
-                // Entering Backup parks the suffix and remembers its state;
-                // leaving Backup restores whatever the user had before.
-                if (value == OriginalPolicy.Backup && previous != OriginalPolicy.Backup)
-                {
-                    _savedSuffixEnabled = _suffixEnabled;
-                    _suffixEnabled = false;
-                    Raise(nameof(SuffixEnabled));
-                    Raise(nameof(SuffixInputEnabled));
-                }
-                else if (previous == OriginalPolicy.Backup && value != OriginalPolicy.Backup)
-                {
-                    _suffixEnabled = _savedSuffixEnabled;
-                    Raise(nameof(SuffixEnabled));
-                    Raise(nameof(SuffixInputEnabled));
-                }
-
-                Raise(nameof(IsBackup));
-            }
+            get => _options.OriginalPolicy;
+            set => _options.OriginalPolicy = value;
         }
 
-        public bool IsBackup => _originalPolicy == OriginalPolicy.Backup;
+        public bool IsBackup => _options.IsBackup;
 
         // ------------------------------------------------------------------
         // size and resize
         // ------------------------------------------------------------------
 
-        private ResizeMode _resizeMode = ResizeMode.None;
-
         public ResizeMode ResizeMode
         {
-            get => _resizeMode;
+            get => _options.ResizeMode;
             set
             {
-                if (!Set(ref _resizeMode, value))
+                if (ResizeMode == value)
                 {
                     return;
                 }
 
-                Raise(nameof(IsResizeClassic));
-                Raise(nameof(IsResizeBounds));
+                _options.ResizeMode = value;
                 Raise(nameof(FilterEnabled));
             }
         }
 
-        public bool IsResizeClassic => _resizeMode == ResizeMode.Classic;
+        public bool IsResizeClassic => _options.IsResizeClassic;
 
-        public bool IsResizeBounds => _resizeMode == ResizeMode.Bounds;
+        public bool IsResizeBounds => _options.IsResizeBounds;
 
         /// <summary>The filter only reaches rimage when a resize step exists.</summary>
-        public bool FilterEnabled => !IsRunning && _resizeMode != ResizeMode.None;
-
-        private string _resizeArgs = "1920l";
+        public bool FilterEnabled => !IsRunning && _options.ResizeMode != ResizeMode.None;
 
         public string ResizeArgs
         {
-            get => _resizeArgs;
-            set => Set(ref _resizeArgs, value);
+            get => _options.ResizeArgs;
+            set => _options.ResizeArgs = value;
         }
-
-        private ResizeFilter _filter = ResizeFilter.Lanczos3;
 
         public ResizeFilter Filter
         {
-            get => _filter;
-            set => Set(ref _filter, value);
+            get => _options.Filter;
+            set => _options.Filter = value;
         }
-
-        private BoundDirection _boundDirection = BoundDirection.Maximum;
 
         public BoundDirection BoundDirection
         {
-            get => _boundDirection;
-            set => Set(ref _boundDirection, value);
+            get => _options.BoundDirection;
+            set => _options.BoundDirection = value;
         }
-
-        private BoundEdge _boundEdge = BoundEdge.Longest;
 
         public BoundEdge BoundEdge
         {
-            get => _boundEdge;
-            set => Set(ref _boundEdge, value);
+            get => _options.BoundEdge;
+            set => _options.BoundEdge = value;
         }
-
-        private int _boundValue = 1920;
 
         public int BoundValue
         {
-            get => _boundValue;
-            set => Set(ref _boundValue, value);
+            get => _options.BoundValue;
+            set => _options.BoundValue = value;
         }
 
         // ------------------------------------------------------------------
         // execution
         // ------------------------------------------------------------------
 
-        private bool _hiddenExecute = true;
-
-        public bool HiddenExecute
+        public bool HideBackendWindow
         {
-            get => _hiddenExecute;
-            set => Set(ref _hiddenExecute, value);
+            get => _options.HideBackendWindow;
+            set => _options.HideBackendWindow = value;
         }
-
-        private bool _autoThreads = true;
 
         public bool AutoThreads
         {
-            get => _autoThreads;
-            set
-            {
-                if (!Set(ref _autoThreads, value))
-                {
-                    return;
-                }
-
-                Raise(nameof(ThreadsInputEnabled));
-            }
+            get => _options.AutoThreads;
+            set => _options.AutoThreads = value;
         }
 
-        public bool ThreadsInputEnabled => !IsRunning && !_autoThreads;
-
-        private int _threads = 4;
+        public bool ThreadsInputEnabled => !IsRunning && _options.ThreadsInputEnabled;
 
         public int Threads
         {
-            get => _threads;
-            set => Set(ref _threads, value);
+            get => _options.Threads;
+            set => _options.Threads = value;
         }
 
         // ------------------------------------------------------------------
@@ -616,7 +505,7 @@ namespace RimageGui.ViewModels
             private set => Set(ref _progressValue, value);
         }
 
-        private string _progressText = Loc.I["Idle"] + " 0%";
+        private string _progressText = $"{Loc.I["Idle"]} 0%";
 
         public string ProgressText
         {
@@ -632,14 +521,26 @@ namespace RimageGui.ViewModels
         {
             try
             {
-                _backendPath = await BackendExtractor.PrepareAsync().ConfigureAwait(true);
-                Log(Loc.I["BackendReady"] + ": " + _backendPath);
+                var path = await EnsureBackendAsync().ConfigureAwait(true);
+                Log($"{Loc.I["BackendReady"]}: {path}");
             }
             catch (Exception exception)
             {
                 _backendPath = null;
-                Log(Loc.I["BackendFailed"] + ": " + exception.Message);
+                Log($"{Loc.I["BackendFailed"]}: {exception.Message}");
             }
+        }
+
+        private async Task<string> EnsureBackendAsync()
+        {
+            if (!string.IsNullOrEmpty(_backendPath))
+            {
+                return _backendPath;
+            }
+
+            var path = await _backendTask.Value.ConfigureAwait(true);
+            _backendPath = path;
+            return path;
         }
 
         // ------------------------------------------------------------------
@@ -653,9 +554,12 @@ namespace RimageGui.ViewModels
                 return;
             }
 
-            _scanCancellation?.Cancel();
-            _scanCancellation = new CancellationTokenSource();
-            var token = _scanCancellation.Token;
+            var previousScan = _scanCancellation;
+            previousScan?.Cancel();
+            previousScan?.Dispose();
+            var currentScan = new CancellationTokenSource();
+            _scanCancellation = currentScan;
+            var token = currentScan.Token;
 
             IsScanning = true;
             ProgressText = Loc.I["Scanning"];
@@ -663,17 +567,20 @@ namespace RimageGui.ViewModels
             try
             {
                 var progress = new Progress<int>(count =>
-                    ProgressText = Loc.I["Scanning"] + " " + count);
+                    ProgressText = $"{Loc.I["Scanning"]} {count}");
 
                 var result = await Task.Run(
                     () => FileScanner.Collect(roots, c => ((IProgress<int>)progress).Report(c), token),
                     token).ConfigureAwait(true);
 
                 AddPaths(result.Found);
-                Log(Loc.I["SelectedCount"] + ": +" + result.Found.Count +
-                    (result.Skipped > 0
-                        ? "  " + string.Format(CultureInfo.CurrentCulture, Loc.I["SkippedUnsupported"], result.Skipped)
-                        : string.Empty));
+                var scanSummary = $"{Loc.I["SelectedCount"]}: +{result.Found.Count}";
+                if (result.Skipped > 0)
+                {
+                    scanSummary += $"  {Loc.I.Format("SkippedUnsupported", result.Skipped)}";
+                }
+
+                Log(scanSummary);
             }
             catch (OperationCanceledException)
             {
@@ -681,12 +588,18 @@ namespace RimageGui.ViewModels
             }
             catch (Exception exception)
             {
-                Log(exception.Message);
+                Log(exception.ToString());
             }
             finally
             {
                 IsScanning = false;
                 ResetProgressText();
+
+                if (ReferenceEquals(_scanCancellation, currentScan))
+                {
+                    currentScan.Dispose();
+                    _scanCancellation = null;
+                }
             }
         }
 
@@ -727,7 +640,7 @@ namespace RimageGui.ViewModels
                 var message = Loc.I[validation.MessageKey];
                 if (!string.IsNullOrEmpty(validation.Detail))
                 {
-                    message += ": " + validation.Detail;
+                    message += $": {validation.Detail}";
                 }
 
                 ShowError?.Invoke(Loc.I["MsgTitleError"], message);
@@ -767,7 +680,7 @@ namespace RimageGui.ViewModels
             _jobCancellation = new CancellationTokenSource();
             IsRunning = true;
             ProgressValue = 0;
-            ProgressText = Loc.I["Running"] + " 0%";
+            ProgressText = $"{Loc.I["Running"]} 0%";
 
             var progress = new Progress<JobReport>(report => Apply(report, byPath));
 
@@ -777,28 +690,16 @@ namespace RimageGui.ViewModels
                     .RunAsync(job, _backendPath, progress, _jobCancellation.Token)
                     .ConfigureAwait(true);
 
-                var text = Loc.I["Summary"] + ": " +
-                           summary.Succeeded + " " + Loc.I["SummarySucceeded"] + ", " +
-                           summary.Failed + " " + Loc.I["SummaryFailed"] + ", " +
-                           summary.Skipped + " " + Loc.I["SummarySkipped"];
+                LogRunSummary(summary);
 
-                Log(text);
-
-                foreach (var failure in summary.FailedItems)
-                {
-                    Log(Loc.I["SummaryFailed"] + ": " + failure.Input +
-                        (!string.IsNullOrEmpty(failure.Error) ? " - " + failure.Error : string.Empty));
-                }
-
-                ProgressText = (summary.Cancelled ? Loc.I["Cancelled"] : Loc.I["Finished"]) + " " +
-                               ProgressPercent() + "%";
+                ProgressText = $"{(summary.Cancelled ? Loc.I["Cancelled"] : Loc.I["Finished"])} {ProgressPercent()}%";
 
                 // The run is over; the next one starts from a clean list.
                 Files.Clear();
             }
             catch (Exception exception)
             {
-                Log(exception.Message);
+                Log(exception.ToString());
                 ShowError?.Invoke(Loc.I["MsgTitleError"], exception.Message);
             }
             finally
@@ -809,7 +710,22 @@ namespace RimageGui.ViewModels
             }
         }
 
-        private void Apply(JobReport report, IReadOnlyDictionary<string, FileEntry> byPath)
+        private void LogRunSummary(JobSummary summary)
+        {
+            var text = $"{Loc.I["Summary"]}: {summary.Succeeded} {Loc.I["SummarySucceeded"]}, " +
+                       $"{summary.Failed} {Loc.I["SummaryFailed"]}, " +
+                       $"{summary.Skipped} {Loc.I["SummarySkipped"]}";
+
+            Log(text);
+
+            foreach (var failure in summary.FailedItems)
+            {
+                var detail = !string.IsNullOrEmpty(failure.Error) ? $" - {failure.Error}" : string.Empty;
+                Log($"{Loc.I["SummaryFailed"]}: {failure.Input}{detail}");
+            }
+        }
+
+        private void Apply(JobReport report, Dictionary<string, FileEntry> byPath)
         {
             switch (report.Kind)
             {
@@ -819,22 +735,25 @@ namespace RimageGui.ViewModels
 
                 case JobReportKind.Progress:
                     ProgressValue = report.Total == 0 ? 0 : report.Done * 100.0 / report.Total;
-                    ProgressText = Loc.I["Running"] + " " + ProgressPercent() + "%";
+                    ProgressText = $"{Loc.I["Running"]} {ProgressPercent()}%";
                     return;
 
                 case JobReportKind.FileFinished:
                     if (byPath.TryGetValue(PathUtil.Key(report.Input), out var entry))
                     {
                         entry.Status = report.Status;
-                        if (report.Output != null)
+                        if (!string.IsNullOrEmpty(report.Output))
                         {
                             entry.OutputPath = report.Output;
                         }
 
-                        entry.Error = report.Error;
+                        entry.Error = report.FailureText;
                     }
 
                     return;
+
+                default:
+                    throw new InvalidOperationException($"Unexpected job report kind: {report.Kind}");
             }
         }
 
@@ -842,29 +761,10 @@ namespace RimageGui.ViewModels
             (int)Math.Round(ProgressValue, MidpointRounding.AwayFromZero);
 
         private void ResetProgressText() =>
-            ProgressText = Loc.I["Idle"] + " " + ProgressPercent() + "%";
+            ProgressText = $"{Loc.I["Idle"]} {ProgressPercent()}%";
 
         /// <summary>Snapshots the editable state so a running job is immune to later edits.</summary>
-        public ProcessingOptions BuildOptions() => new ProcessingOptions
-        {
-            Format = Format,
-            Quality = Quality,
-            Quantization = QuantizationEnabled ? Quantization : (int?)null,
-            Dithering = QuantizationEnabled && DitheringEnabled ? Dithering : (int?)null,
-            Suffix = SuffixEnabled ? Suffix : null,
-            OutputMode = OutputMode,
-            OutputDirectory = OutputDirectory,
-            PreserveStructure = IsSelectedDir && PreserveStructure,
-            OriginalPolicy = OriginalPolicy,
-            ResizeMode = ResizeMode,
-            ResizeArgs = ResizeArgs,
-            Filter = Filter,
-            BoundDirection = BoundDirection,
-            BoundEdge = BoundEdge,
-            BoundValue = BoundValue,
-            Threads = AutoThreads ? (int?)null : Threads,
-            Hidden = HiddenExecute
-        };
+        public ProcessingOptions BuildOptions() => _options.BuildOptions();
 
         /// <summary>Command line the current settings would produce, for the log.</summary>
         public string PreviewCommandLine()
@@ -881,9 +781,49 @@ namespace RimageGui.ViewModels
             }
         }
 
-        private void Refresh()
+        /// <summary>
+        /// Starts an async view hook while ensuring any thrown exception is
+        /// observed and surfaced on the UI, instead of becoming an unobserved
+        /// task exception or an <c>async void</c> crash.
+        /// </summary>
+        public void RunSafely(Func<Task> action)
         {
-            SelectAllCommand.RaiseCanExecuteChanged();
+            if (action == null)
+            {
+                return;
+            }
+
+            Task task;
+            try
+            {
+                task = action();
+            }
+            catch (Exception exception)
+            {
+                HandleSafely(exception);
+                return;
+            }
+
+            task.ContinueWith(
+                completed =>
+                {
+                    if (completed.IsFaulted)
+                    {
+                        HandleSafely(completed.Exception?.GetBaseException() ?? new InvalidOperationException("Unknown async failure"));
+                    }
+                },
+                TaskScheduler.Default);
+        }
+
+        private void HandleSafely(Exception exception)
+        {
+            Log(exception.ToString());
+            ShowError?.Invoke(Loc.I["MsgTitleError"], exception.Message);
+        }
+
+        private static void Refresh()
+        {
+            RelayCommand.RaiseCanExecuteChanged();
         }
 
         // ------------------------------------------------------------------
@@ -902,6 +842,14 @@ namespace RimageGui.ViewModels
 
         private void Raise([CallerMemberName] string name = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+        public void Dispose()
+        {
+            _jobCancellation?.Dispose();
+            _jobCancellation = null;
+            _scanCancellation?.Dispose();
+            _scanCancellation = null;
+        }
 
         public event PropertyChangedEventHandler PropertyChanged;
     }

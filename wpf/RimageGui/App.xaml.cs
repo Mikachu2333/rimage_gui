@@ -8,6 +8,8 @@ namespace RimageGui
 {
     public partial class App : Application
     {
+        private readonly ThemeService _themeService = new ThemeService();
+
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
@@ -17,17 +19,24 @@ namespace RimageGui
 
             // Must run before any window is realised so the first frame is
             // already painted in the right theme instead of flashing light.
-            ThemeManager.Initialize();
+            _themeService.Initialize();
 
             DispatcherUnhandledException += OnDispatcherUnhandledException;
 
-            var window = new MainWindow();
+            var window = new MainWindow(_themeService);
             MainWindow = window;
             window.Show();
         }
 
         private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
+            // Unrecoverable faults should let the process die instead of being
+            // swallowed by the normal "keep the shell alive" handler.
+            if (e.Exception is OutOfMemoryException || e.Exception is StackOverflowException)
+            {
+                return;
+            }
+
             // A shell that spawns a converter should surface a fault and keep the
             // queued file list alive rather than vanish with it.
             MessageBox.Show(
@@ -41,7 +50,7 @@ namespace RimageGui
 
         protected override void OnExit(ExitEventArgs e)
         {
-            ThemeManager.Shutdown();
+            _themeService.Shutdown();
             base.OnExit(e);
         }
     }

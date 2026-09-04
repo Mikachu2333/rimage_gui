@@ -4,6 +4,12 @@
     <TargetFramework>net48</TargetFramework>
     <IsPackable>false</IsPackable>
     <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <!-- The test project deliberately keeps underscore-separated method names
+         and local array literals; those rules add noise without safety value. -->
+    <NoWarn>$(NoWarn);CA1707;CA1861;CA1825;CA1859</NoWarn>
     <Platforms>AnyCPU</Platforms>
     <!-- The main project is a WinExe; tests reference its types directly. -->
     <GenerateProgramFile>false</GenerateProgramFile>

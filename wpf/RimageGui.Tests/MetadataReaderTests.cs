@@ -6,7 +6,7 @@ using RimageGui.Core;
 namespace RimageGui.Tests
 {
     [TestClass]
-    public class MetadataReaderTests
+    public class MetadataReaderSpecs
     {
         [TestMethod]
         public void ParsesRimageMetadata_IntoAnOutputMap()
@@ -35,15 +35,15 @@ namespace RimageGui.Tests
         }
 
         [TestMethod]
-        public void MissingOrCorruptMetadata_ReturnsNull()
+        public void MissingOrCorruptMetadata_ReturnsEmptyMap()
         {
-            Assert.IsNull(MetadataReader.LoadOutputMap(Path.Combine(Path.GetTempPath(), "no-such-metadata.json")));
+            Assert.AreEqual(0, MetadataReader.LoadOutputMap(Path.Combine(Path.GetTempPath(), "no-such-metadata.json")).Count);
 
             var path = Path.GetTempFileName();
             try
             {
                 File.WriteAllText(path, "{ not json at all ][");
-                Assert.IsNull(MetadataReader.LoadOutputMap(path));
+                Assert.AreEqual(0, MetadataReader.LoadOutputMap(path).Count);
             }
             finally
             {

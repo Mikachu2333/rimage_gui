@@ -30,6 +30,6 @@ namespace RimageGui.ViewModels
             remove => CommandManager.RequerySuggested -= value;
         }
 
-        public void RaiseCanExecuteChanged() => CommandManager.InvalidateRequerySuggested();
+        public static void RaiseCanExecuteChanged() => CommandManager.InvalidateRequerySuggested();
     }
 }

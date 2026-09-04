@@ -1,13 +1,14 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RimageGui.Core;
 
 namespace RimageGui.Tests
 {
     [TestClass]
-    public class FileScannerTests
+    public class FileScannerSpecs
     {
         private string _root;
 
@@ -48,9 +49,9 @@ namespace RimageGui.Tests
             var image = Create("a.jpg");
             var text = Create("notes.txt");
 
-            var result = FileScanner.Collect(new[] { image, text }, null, System.Threading.CancellationToken.None);
+            var result = FileScanner.Collect(new[] { image, text }, null, CancellationToken.None);
 
-            CollectionAssert.AreEqual(new[] { image }, result.Found);
+            CollectionAssert.AreEqual(new[] { image }, result.Found.ToList());
             Assert.AreEqual(1, result.Skipped);
         }
 
@@ -61,7 +62,7 @@ namespace RimageGui.Tests
             Create("nested", "e.tiff");
             Create("nested", "ignored.exe");
 
-            var result = FileScanner.Collect(new[] { _root }, null, System.Threading.CancellationToken.None);
+            var result = FileScanner.Collect(new[] { _root }, null, CancellationToken.None);
 
             Assert.IsTrue(result.Found.Contains(nested), "recursion missed the nested image");
             Assert.AreEqual(2, result.Found.Count, string.Join(", ", result.Found));
@@ -78,7 +79,7 @@ namespace RimageGui.Tests
             var result = FileScanner.Collect(
                 new[] { _root, _root, image, image },
                 null,
-                System.Threading.CancellationToken.None);
+                CancellationToken.None);
 
             // The folder root is walked once per occurrence, so the unsupported
             // file is counted twice; the duplicate file arguments add nothing.
@@ -119,7 +120,7 @@ namespace RimageGui.Tests
             var result = FileScanner.Collect(
                 new[] { _root },
                 _ => reports++,
-                System.Threading.CancellationToken.None);
+                CancellationToken.None);
 
             Assert.AreEqual(300, result.Found.Count);
             Assert.IsTrue(reports > 0 && reports < 300, "throttling failed: " + reports);
@@ -131,7 +132,7 @@ namespace RimageGui.Tests
             var result = FileScanner.Collect(
                 new[] { Path.Combine(_root, "does-not-exist.jpg"), "   ", null },
                 null,
-                System.Threading.CancellationToken.None);
+                CancellationToken.None);
 
             Assert.AreEqual(0, result.Found.Count);
             Assert.AreEqual(0, result.Skipped);

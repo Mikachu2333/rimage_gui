@@ -4,15 +4,6 @@ using System.Runtime.CompilerServices;
 
 namespace RimageGui.Models
 {
-    public enum FileStatus
-    {
-        Pending,
-        Running,
-        Done,
-        Failed,
-        Skipped
-    }
-
     /// <summary>
     /// One row of the file table. Thousands of these are live at once, so the
     /// type stays small and raises change notifications only for the three

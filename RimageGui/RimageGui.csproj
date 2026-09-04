@@ -5,12 +5,25 @@
     <TargetFramework>net48</TargetFramework>
     <UseWPF>true</UseWPF>
     <RootNamespace>RimageGui</RootNamespace>
-    <AssemblyName>rimage-gui</AssemblyName>
+    <!-- Architecture-suffixed names let x64 and x86 releases sit side by side
+         in one flat release folder (bin\Release\). -->
+    <AssemblyName Condition="'$(Platform)' == 'x64'">rimage-gui_x64</AssemblyName>
+    <AssemblyName Condition="'$(Platform)' == 'x86'">rimage-gui_x86</AssemblyName>
+    <AssemblyName Condition="'$(Platform)' == 'AnyCPU' Or '$(Platform)' == ''">rimage-gui</AssemblyName>
     <LangVersion>latest</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <!-- Architecture suffixes intentionally contain an underscore. -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
     <Platforms>AnyCPU;x64;x86</Platforms>
+    <!-- Keep the release folder flat: no net48 subfolder, one exe per arch. -->
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <!-- Runtime settings now live in App.xaml.cs, so no side-car .config is needed. -->
+    <GenerateSupportedRuntime>false</GenerateSupportedRuntime>
+    <OutputPath Condition="'$(Configuration)' == 'Release'">bin\Release\</OutputPath>
+    <OutputPath Condition="'$(Configuration)' != 'Release'">bin\Debug\</OutputPath>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <Version>3.0.2</Version>
     <Product>Rimage GUI</Product>

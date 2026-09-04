@@ -8,6 +8,14 @@ namespace RimageGui
 {
     public partial class App : Application
     {
+        static App()
+        {
+            // This used to live in App.config so WPF would honour the manifest's
+            // PerMonitorV2 declaration. Moving it into the executable removes the
+            // need for a side-car .exe.config file.
+            AppContext.SetSwitch("Switch.System.Windows.DoNotScaleForDpiChanges", false);
+        }
+
         private readonly ThemeService _themeService = new ThemeService();
 
         protected override void OnStartup(StartupEventArgs e)

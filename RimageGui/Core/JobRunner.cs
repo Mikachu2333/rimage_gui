@@ -89,7 +89,7 @@ namespace RimageGui.Core
 
                     var context = new ChunkContext(
                         chunk, options, backendPath, scratch, workingRoot,
-                        progress, !loggedCommand, token);
+                        progress, !loggedCommand, done, total, token);
                     var outcome = await RunChunkAsync(context).ConfigureAwait(false);
 
                     loggedCommand = true;
@@ -192,6 +192,14 @@ namespace RimageGui.Core
 
             public Dictionary<string, string> Outputs { get; set; }
 
+            /// <summary>
+            /// Actual output paths parsed from rimage's per-file summary lines,
+            /// keyed by <see cref="PathUtil.Key"/>. Used when rimage writes no
+            /// metadata because one file in the chunk failed.
+            /// </summary>
+            public Dictionary<string, string> ReportedOutputs { get; } =
+                new Dictionary<string, string>(StringComparer.Ordinal);
+
             public string Diagnostic { get; set; }
 
             public string CommandLine { get; set; }
@@ -216,6 +224,8 @@ namespace RimageGui.Core
                 string workingRoot,
                 IProgress<JobReport> progress,
                 bool logCommand,
+                int baseDone,
+                int total,
                 CancellationToken token)
             {
                 Chunk = chunk;
@@ -225,6 +235,8 @@ namespace RimageGui.Core
                 WorkingRoot = workingRoot;
                 Progress = progress;
                 LogCommand = logCommand;
+                BaseDone = baseDone;
+                Total = total;
                 Token = token;
             }
 
@@ -241,6 +253,10 @@ namespace RimageGui.Core
             public IProgress<JobReport> Progress { get; }
 
             public bool LogCommand { get; }
+
+            public int BaseDone { get; }
+
+            public int Total { get; }
 
             public CancellationToken Token { get; }
         }
@@ -288,6 +304,7 @@ namespace RimageGui.Core
             }
 
             var diagnostic = new StringBuilder();
+            var completedInChunk = 0;
 
             try
             {
@@ -302,15 +319,33 @@ namespace RimageGui.Core
                                 return;
                             }
 
+                            var isFileResult = LooksLikeFileResult(e.Data);
+                            var completedNow = 0;
                             lock (diagnostic)
                             {
                                 if (diagnostic.Length < MaxDiagnosticChars)
                                 {
                                     diagnostic.AppendLine(e.Data);
                                 }
+
+                                if (isFileResult)
+                                {
+                                    completedInChunk++;
+                                    completedNow = completedInChunk;
+                                    var reported = ExtractOutputPath(e.Data);
+                                    if (reported != null)
+                                    {
+                                        outcome.ReportedOutputs[PathUtil.Key(reported)] = reported;
+                                    }
+                                }
                             }
 
                             context.Progress?.Report(new LogJobReport(e.Data));
+                            if (completedNow > 0)
+                            {
+                                context.Progress?.Report(new ProgressJobReport(
+                                    context.BaseDone + completedNow, context.Total));
+                            }
                         };
 
                         process.OutputDataReceived += onData;
@@ -381,6 +416,62 @@ namespace RimageGui.Core
             await Task.Yield();
         }
 
+        private static bool LooksLikeFileResult(string line)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                return false;
+            }
+
+            if (line.StartsWith("File", StringComparison.Ordinal) ||
+                line.StartsWith("Total:", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            return line.IndexOf(" kB > ", StringComparison.Ordinal) > 0;
+        }
+
+        private static string ExtractOutputPath(string line)
+        {
+            var marker = line.IndexOf(" kB > ", StringComparison.Ordinal);
+            if (marker <= 0)
+            {
+                return null;
+            }
+
+            var path = line.Substring(0, marker).Trim();
+            if (path.StartsWith(@"\\?\", StringComparison.Ordinal))
+            {
+                path = path.Substring(4);
+            }
+
+            return path;
+        }
+
+        private static string FindReportedOutput(
+            string input,
+            ProcessingOptions options,
+            ChunkOutcome outcome)
+        {
+            var predicted = Validator.PredictedOutputPath(input, options);
+            if (outcome.ReportedOutputs.TryGetValue(PathUtil.Key(predicted), out var exact))
+            {
+                return exact;
+            }
+
+            var predictedName = Path.GetFileName(predicted);
+            foreach (var pair in outcome.ReportedOutputs)
+            {
+                if (string.Equals(Path.GetFileName(pair.Value), predictedName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return pair.Value;
+                }
+            }
+
+            return null;
+        }
+
         private static FileResult Resolve(string input, ProcessingOptions options, ChunkOutcome outcome)
         {
             if (outcome.ProcessSucceeded &&
@@ -391,8 +482,14 @@ namespace RimageGui.Core
             }
 
             // rimage writes no metadata for a failed batch, so fall back to the
-            // predicted path: a file that exists and is non-empty means this
-            // particular input made it through even though the chunk did not.
+            // per-file summary lines it still emits. Those give the real output
+            // path; the predicted path remains a final existence check.
+            var reportedOutput = FindReportedOutput(input, options, outcome);
+            if (reportedOutput != null && IsUsableOutput(reportedOutput))
+            {
+                return new FileResult { Status = FileStatus.Done, Output = reportedOutput };
+            }
+
             var predicted = Validator.PredictedOutputPath(input, options);
             if (IsUsableOutput(predicted))
             {

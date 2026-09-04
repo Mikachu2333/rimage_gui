@@ -25,7 +25,7 @@
     <OutputPath Condition="'$(Configuration)' == 'Release'">bin\Release\</OutputPath>
     <OutputPath Condition="'$(Configuration)' != 'Release'">bin\Debug\</OutputPath>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <Version>3.0.2</Version>
+    <Version>3.0.3</Version>
     <Product>Rimage GUI</Product>
     <Company>Mikachu2333</Company>
     <Copyright>MIT</Copyright>

@@ -10,7 +10,7 @@
     <!-- The test project deliberately keeps underscore-separated method names
          and local array literals; those rules add noise without safety value. -->
     <NoWarn>$(NoWarn);CA1707;CA1861;CA1825;CA1859</NoWarn>
-    <Platforms>AnyCPU</Platforms>
+    <Platforms>AnyCPU;x64;x86</Platforms>
     <!-- The main project is a WinExe; tests reference its types directly. -->
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>

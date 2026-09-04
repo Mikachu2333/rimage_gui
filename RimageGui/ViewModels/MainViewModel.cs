@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -262,6 +263,7 @@ namespace RimageGui.ViewModels
 
                 _options.Format = value;
                 Raise(nameof(QualityEnabled));
+                Raise(nameof(QualityText));
                 Raise(nameof(FormatHint));
             }
         }
@@ -271,10 +273,43 @@ namespace RimageGui.ViewModels
         /// <summary>Lossless codecs reject <c>--quality</c>, so the field is disabled rather than ignored.</summary>
         public bool QualityEnabled => !IsRunning && _options.Format.SupportsQuality();
 
+        /// <summary>
+        /// Text shown in the quality box. Lossless codecs have no quality knob,
+        /// so the box is kept visibly empty rather than showing a stale number.
+        /// The setter parses edits back into <see cref="Quality"/> while the box
+        /// is enabled, preserving two-way editing for lossy formats.
+        /// </summary>
+        public string QualityText
+        {
+            get => QualityEnabled ? Quality.ToString(CultureInfo.InvariantCulture) : string.Empty;
+            set
+            {
+                if (QualityEnabled &&
+                    int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) &&
+                    parsed != Quality)
+                {
+                    Quality = parsed;
+                }
+                else
+                {
+                    Raise(nameof(QualityText));
+                }
+            }
+        }
+
         public int Quality
         {
             get => _options.Quality;
-            set => _options.Quality = value;
+            set
+            {
+                if (Quality == value)
+                {
+                    return;
+                }
+
+                _options.Quality = value;
+                Raise(nameof(QualityText));
+            }
         }
 
         public bool QuantizationEnabled
@@ -470,6 +505,7 @@ namespace RimageGui.ViewModels
                 // panel locks and unlocks from this single transition.
                 Raise(nameof(CanEditSettings));
                 Raise(nameof(QualityEnabled));
+                Raise(nameof(QualityText));
                 Raise(nameof(QuantizationInputEnabled));
                 Raise(nameof(DitheringToggleEnabled));
                 Raise(nameof(DitheringInputEnabled));

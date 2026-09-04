@@ -28,6 +28,26 @@
             <Setter Property="Margin" Value="0,0,0,8" />
         </Style>
 
+        <!-- Common settings-row control defaults. Numeric boxes share one style
+             so only the field-specific bounds/tooltip/binding are repeated. -->
+        <Style x:Key="SettingsNumericTextBox"
+               TargetType="ctrl:NumericTextBox"
+               BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Minimum" Value="1" />
+            <Setter Property="Maximum" Value="100" />
+            <Setter Property="TextAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="SettingsTextBox"
+               TargetType="TextBox"
+               BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="TextAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="SettingsComboBox"
+               TargetType="ComboBox"
+               BasedOn="{StaticResource {x:Type ComboBox}}" />
+
         <DataTemplate x:Key="CliItemTemplate">
             <TextBlock Text="{Binding Converter={StaticResource CliName}}" />
         </DataTemplate>
@@ -237,6 +257,7 @@
                                     <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
                                                Text="{loc:Loc Format}" />
                                     <ComboBox Grid.Column="1"
+                                              Style="{StaticResource SettingsComboBox}"
                                               ToolTip="{loc:Loc FormatTip}"
                                               ItemsSource="{Binding Formats}"
                                               ItemTemplate="{StaticResource CliItemTemplate}"
@@ -257,25 +278,10 @@
                                                Text="{loc:Loc Quality}" Height="28" Padding="24,4,0,0"
                                                          TextAlignment="Left" />
                                     <ctrl:NumericTextBox Grid.Column="1"
-                                                         Minimum="1" Maximum="100"
-                                                         TextAlignment="Center"
+                                                         Style="{StaticResource SettingsNumericTextBox}"
                                                          ToolTip="{loc:Loc QualityTip}"
-                                                         IsEnabled="{Binding QualityEnabled}">
-                                        <ctrl:NumericTextBox.Style>
-                                            <Style TargetType="ctrl:NumericTextBox"
-                                                   BasedOn="{StaticResource {x:Type TextBox}}">
-                                                <Setter Property="Text"
-                                                        Value="{Binding Quality, UpdateSourceTrigger=PropertyChanged}" />
-                                                <Style.Triggers>
-                                                    <!-- Clearing the visible text (not just disabling)
-                                                         is what makes "this codec has no quality" obvious. -->
-                                                    <DataTrigger Binding="{Binding QualityEnabled}" Value="False">
-                                                        <Setter Property="Text" Value="" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </ctrl:NumericTextBox.Style>
-                                    </ctrl:NumericTextBox>
+                                                         IsEnabled="{Binding QualityEnabled}"
+                                                         Text="{Binding QualityText, UpdateSourceTrigger=PropertyChanged}" />
                                 </Grid>
 
                                 <Grid Style="{StaticResource SettingRow}">
@@ -288,8 +294,7 @@
                                               ToolTip="{loc:Loc QuantizationTip}"
                                               IsChecked="{Binding QuantizationEnabled}" />
                                     <ctrl:NumericTextBox Grid.Column="1"
-                                                         TextAlignment="Center"
-                                                         Minimum="1" Maximum="100"
+                                                         Style="{StaticResource SettingsNumericTextBox}"
                                                          ToolTip="{loc:Loc QuantizationTip}"
                                                          IsEnabled="{Binding QuantizationInputEnabled}"
                                                          Text="{Binding Quantization, UpdateSourceTrigger=PropertyChanged}" />
@@ -306,8 +311,7 @@
                                               IsEnabled="{Binding DitheringToggleEnabled}"
                                               IsChecked="{Binding DitheringEnabled}" />
                                     <ctrl:NumericTextBox Grid.Column="1"
-                                                         Minimum="1" Maximum="100"
-                                                         TextAlignment="Center"
+                                                         Style="{StaticResource SettingsNumericTextBox}"
                                                          ToolTip="{loc:Loc DitheringTip}"
                                                          IsEnabled="{Binding DitheringInputEnabled}"
                                                          Text="{Binding Dithering, UpdateSourceTrigger=PropertyChanged}" />
@@ -323,6 +327,7 @@
                                               ToolTip="{loc:Loc SuffixTip}"
                                               IsChecked="{Binding SuffixEnabled}" />
                                     <TextBox Grid.Column="1"
+                                             Style="{StaticResource SettingsTextBox}"
                                              ToolTip="{loc:Loc SuffixTip}"
                                              IsEnabled="{Binding SuffixInputEnabled}"
                                              Text="{Binding Suffix, UpdateSourceTrigger=PropertyChanged}" />
@@ -426,6 +431,7 @@
                                     <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
                                                Text="{loc:Loc BackupSuffixLabel}" />
                                     <TextBox Grid.Column="1"
+                                             Style="{StaticResource SettingsTextBox}"
                                              Text="@backup"
                                              IsReadOnly="True"
                                              ToolTip="{loc:Loc BackupSuffixTip}"
@@ -474,7 +480,7 @@
                                                          TextAlignment="Left" 
                                                Text="{loc:Loc ResizeArgs}" />
                                     <TextBox Grid.Column="1"
-                                             TextAlignment="Left"
+                                             Style="{StaticResource SettingsTextBox}"
                                              ToolTip="{loc:Loc ResizeArgsTip}"
                                              Text="{Binding ResizeArgs, UpdateSourceTrigger=PropertyChanged}" />
                                 </Grid>
@@ -525,8 +531,8 @@
                                     <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
                                                Text="{loc:Loc BoundValue}" />
                                         <ctrl:NumericTextBox Grid.Column="1"
-                                                             Minimum="1" Maximum="100000"
-                                                             TextAlignment="Center"
+                                                             Style="{StaticResource SettingsNumericTextBox}"
+                                                             Maximum="100000"
                                                              ToolTip="{loc:Loc SizeTip}"
                                                              Text="{Binding BoundValue, UpdateSourceTrigger=PropertyChanged}" />
                                     </Grid>
@@ -541,6 +547,7 @@
                                                          TextAlignment="Left" 
                                                Text="{loc:Loc Filter}" />
                                     <ComboBox Grid.Column="1"
+                                              Style="{StaticResource SettingsComboBox}"
                                               ToolTip="{loc:Loc FilterTip}"
                                               IsEnabled="{Binding FilterEnabled}"
                                               ItemsSource="{Binding Filters}"
@@ -573,7 +580,8 @@
                                     <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
                                                Text="{loc:Loc Threads}" />
                                     <ctrl:NumericTextBox Grid.Column="1"
-                                                         Minimum="1" Maximum="256"
+                                                         Style="{StaticResource SettingsNumericTextBox}"
+                                                         Maximum="256"
                                                          ToolTip="{loc:Loc ThreadsTip}"
                                                          IsEnabled="{Binding ThreadsInputEnabled}"
                                                          Text="{Binding Threads, UpdateSourceTrigger=PropertyChanged}" />

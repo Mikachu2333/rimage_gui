@@ -86,8 +86,11 @@ namespace RimageGui.Tests
         private static IEnumerable<string> CollectUsedKeys()
         {
             var root = LocateProjectRoot();
+            var appRoot = Directory.Exists(Path.Combine(root, "RimageGui"))
+                ? Path.Combine(root, "RimageGui")
+                : Path.Combine(root, "wpf");
             var sources = Directory
-                .EnumerateFiles(Path.Combine(root, "wpf"), "*.*", SearchOption.AllDirectories)
+                .EnumerateFiles(appRoot, "*.*", SearchOption.AllDirectories)
                 .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")
                             && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")
                             && !path.Contains("RimageGui.Tests"))
@@ -145,7 +148,13 @@ namespace RimageGui.Tests
             var directory = new DirectoryInfo(AppContext.BaseDirectory);
             for (var depth = 0; depth < 10 && directory != null; depth++)
             {
-                var marker = Path.Combine(directory.FullName, "wpf", "RimageGui", "RimageGui.csproj");
+                var marker = Path.Combine(directory.FullName, "RimageGui", "RimageGui.csproj");
+                if (File.Exists(marker))
+                {
+                    return directory.FullName;
+                }
+
+                marker = Path.Combine(directory.FullName, "wpf", "RimageGui", "RimageGui.csproj");
                 if (File.Exists(marker))
                 {
                     return directory.FullName;
@@ -154,7 +163,7 @@ namespace RimageGui.Tests
                 directory = directory.Parent;
             }
 
-            Assert.Fail("the repository root (wpf/RimageGui/RimageGui.csproj) was not found");
+            Assert.Fail("the repository root (RimageGui/RimageGui.csproj) was not found");
             return null;
         }
     }

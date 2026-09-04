@@ -154,11 +154,12 @@
         </Setter>
     </Style>
 
-    <!-- The single terminal action; deliberately the only accent-filled button. -->
+    <!-- The single terminal action; follows the neutral native button look
+         instead of a saturated accent fill. -->
     <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-        <Setter Property="Background" Value="{DynamicResource AccentBackground}" />
-        <Setter Property="Foreground" Value="{DynamicResource AccentForeground}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource AccentBackground}" />
+        <Setter Property="Background" Value="{DynamicResource ControlBackground}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlBorder}" />
         <Setter Property="FontSize" Value="18" />
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="MinHeight" Value="40" />
@@ -181,13 +182,13 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Root" Property="Background"
-                                    Value="{DynamicResource AccentBackgroundHover}" />
+                                    Value="{DynamicResource ControlBackgroundHover}" />
                             <Setter TargetName="Root" Property="BorderBrush"
-                                    Value="{DynamicResource AccentBackgroundHover}" />
+                                    Value="{DynamicResource ControlBorderHover}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="Root" Property="Background"
-                                    Value="{DynamicResource AccentBackgroundPressed}" />
+                                    Value="{DynamicResource ControlBackgroundPressed}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="Root" Property="Background"
@@ -245,10 +246,10 @@
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Root" Property="Background"
-                                    Value="{DynamicResource AccentBackground}" />
+                                    Value="{DynamicResource ControlBackgroundPressed}" />
                             <Setter TargetName="Root" Property="BorderBrush"
-                                    Value="{DynamicResource AccentBackground}" />
-                            <Setter Property="Foreground" Value="{DynamicResource AccentForeground}" />
+                                    Value="{DynamicResource ControlBorderHover}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
                             <Setter Property="FontWeight" Value="Bold" />
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">

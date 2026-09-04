@@ -11,14 +11,11 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <Platforms>AnyCPU;x64;x86</Platforms>
-    <ApplicationIcon>..\..\icon.ico</ApplicationIcon>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <Version>3.0.2</Version>
     <Product>Rimage GUI</Product>
     <Company>Mikachu2333</Company>
     <Copyright>MIT</Copyright>
-    <NeutralLanguage>en</NeutralLanguage>
     <!-- Satellite assemblies are not used; strings live in a compiled catalog. -->
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
@@ -35,13 +32,20 @@
     <EmbedBackend Condition="'$(EmbedBackend)' == '' And '$(Configuration)' == 'Release' And ('$(Platform)' == 'x64' Or '$(Platform)' == 'x86')">true</EmbedBackend>
     <EmbedBackend Condition="'$(EmbedBackend)' == ''">false</EmbedBackend>
     <DefineConstants Condition="'$(EmbedBackend)' == 'true'">$(DefineConstants);EMBED_BACKEND</DefineConstants>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RepositoryType>git</RepositoryType>
+    <NeutralLanguage>en</NeutralLanguage>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(EmbedBackend)' == 'true' And '$(Platform)' == 'x64'">
-    <EmbeddedResource Include="..\..\res\rimage_x64.exe" LogicalName="RimageGui.rimage.exe" />
+    <EmbeddedResource Include="..\res\rimage_x64.exe" LogicalName="RimageGui.rimage.exe" />
   </ItemGroup>
   <ItemGroup Condition="'$(EmbedBackend)' == 'true' And '$(Platform)' == 'x86'">
-    <EmbeddedResource Include="..\..\res\rimage_x86.exe" LogicalName="RimageGui.rimage.exe" />
+    <EmbeddedResource Include="..\res\rimage_x86.exe" LogicalName="RimageGui.rimage.exe" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="icon.ico" />
   </ItemGroup>
 
   <ItemGroup>
@@ -50,5 +54,4 @@
          following live theme switches needs no extra reference. -->
     <Reference Include="System.Runtime.Serialization" />
   </ItemGroup>
-
 </Project>

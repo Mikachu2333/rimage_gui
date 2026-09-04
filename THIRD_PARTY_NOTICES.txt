@@ -1,0 +1,13 @@
+Rimage GUI embeds and redistributes the rimage 0.12.5 command-line program.
+
+rimage is licensed under either the Apache License, Version 2.0 or the MIT License:
+https://github.com/SalOne22/rimage
+
+Note: embedded rimage process might use the Mikachu2333 compiled version.
+
+The complete rimage distribution and source repository contain LICENSE-APACHE and
+LICENSE-MIT. Distributors of this GUI must include those license texts with binary
+packages that contain the embedded backend.
+
+Rust crate dependencies retain their respective licenses. See Cargo.lock and each
+crate's package metadata/source distribution for details.

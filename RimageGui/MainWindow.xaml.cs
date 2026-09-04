@@ -63,6 +63,7 @@ namespace RimageGui
             _viewModel.ShowError = ShowMessageBox;
             _viewModel.Confirm = ConfirmDialog;
             _viewModel.LogAppended += AppendLog;
+            _viewModel.JobCompleted += OnJobCompleted;
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
@@ -83,6 +84,7 @@ namespace RimageGui
         public void Dispose()
         {
             GC.SuppressFinalize(this);
+            _viewModel.JobCompleted -= OnJobCompleted;
             _viewModel.Dispose();
         }
 
@@ -142,6 +144,17 @@ namespace RimageGui
                 Loc.I["ConfirmTitle"],
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning) == MessageBoxResult.Yes;
+        }
+
+        private void OnJobCompleted()
+        {
+            if (WindowState == WindowState.Minimized)
+            {
+                WindowState = WindowState.Normal;
+            }
+
+            Activate();
+            Focus();
         }
 
         // ------------------------------------------------------------------

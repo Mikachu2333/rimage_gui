@@ -59,6 +59,9 @@ namespace RimageGui.ViewModels
         public Func<string, bool> Confirm { get; set; }
         public event Action<string> LogAppended;
 
+        /// <summary>Raised on the UI thread when a conversion job has finished, cancelled, or failed.</summary>
+        public event Action JobCompleted;
+
         public RangeObservableCollection<FileEntry> Files { get; }
 
         public RelayCommand AddFilesCommand { get; }
@@ -743,6 +746,7 @@ namespace RimageGui.ViewModels
                 IsRunning = false;
                 _jobCancellation?.Dispose();
                 _jobCancellation = null;
+                JobCompleted?.Invoke();
             }
         }
 

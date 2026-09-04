@@ -215,7 +215,7 @@
         <Setter Property="FontFamily" Value="{DynamicResource AppFont}" />
         <Setter Property="FontSize" Value="{DynamicResource FontSizeNormal}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-        <Setter Property="Padding" Value="16,5" />
+        <Setter Property="Padding" Value="8,5" />
         <Setter Property="Margin" Value="0,0,6,8" />
         <Setter Property="MinHeight" Value="{StaticResource RowHeight}" />
         <Setter Property="Cursor" Value="Hand" />

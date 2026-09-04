@@ -9,7 +9,7 @@ namespace RimageGui.I18n
         private static IReadOnlyDictionary<string, string> EnglishMap { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             // ---- shell ----
-            ["AppTitle"] = "Rimage Image Converter",
+            ["AppTitle"] = "Rimage GUI",
             ["Options"] = "Conversion options",
             // ---- file toolbar ----
             ["AddFiles"] = "Add files",

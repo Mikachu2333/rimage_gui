@@ -9,7 +9,7 @@ namespace RimageGui.I18n
         private static IReadOnlyDictionary<string, string> ChineseMap { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             // ---- shell ----
-            ["AppTitle"] = "Rimage 图像转换",
+            ["AppTitle"] = "Rimage GUI",
             ["Options"] = "转换选项",
             // ---- file toolbar ----
             ["AddFiles"] = "添加文件",

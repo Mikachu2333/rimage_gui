@@ -45,7 +45,6 @@ namespace RimageGui.Controls
             PreviewKeyDown += OnPreviewKeyDown;
             LostFocus += OnLostFocus;
             DataObject.AddPastingHandler(this, OnPaste);
-            TextAlignment = TextAlignment.Right;
         }
 
         private void OnPreviewTextInput(object sender, TextCompositionEventArgs e)

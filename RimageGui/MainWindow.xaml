@@ -41,7 +41,6 @@
         <Style x:Key="SettingsTextBox"
                TargetType="TextBox"
                BasedOn="{StaticResource {x:Type TextBox}}">
-            <Setter Property="TextAlignment" Value="Center" />
         </Style>
 
         <Style x:Key="SettingsComboBox"
@@ -251,8 +250,8 @@
                             <StackPanel>
                                 <Grid Style="{StaticResource SettingRow}">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="76" />
-                                        <ColumnDefinition Width="160" />
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="120" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
                                                Text="{loc:Loc Format}" />
@@ -271,11 +270,11 @@
 
                                 <Grid Style="{StaticResource SettingRow}">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="120" />
                                         <ColumnDefinition Width="60" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
-                                               Text="{loc:Loc Quality}" Height="28" Padding="24,4,0,0"
+                                               Text="{loc:Loc Quality}" Height="28" Padding="0,4,0,0"
                                                          TextAlignment="Left" />
                                     <ctrl:NumericTextBox Grid.Column="1"
                                                          Style="{StaticResource SettingsNumericTextBox}"
@@ -286,7 +285,7 @@
 
                                 <Grid Style="{StaticResource SettingRow}">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="120" />
                                         <ColumnDefinition Width="60" />
                                     </Grid.ColumnDefinitions>
                                     <CheckBox Grid.Column="0"
@@ -302,7 +301,7 @@
 
                                 <Grid Style="{StaticResource SettingRow}">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="120" />
                                         <ColumnDefinition Width="60" />
                                     </Grid.ColumnDefinitions>
                                     <CheckBox Grid.Column="0"
@@ -319,7 +318,7 @@
 
                                 <Grid Style="{StaticResource SettingRow}">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="120" />
                                         <ColumnDefinition Width="120" />
                                     </Grid.ColumnDefinitions>
                                     <CheckBox Grid.Column="0"
@@ -425,7 +424,7 @@
                                 <Grid Style="{StaticResource SettingRow}"
                                       Visibility="{Binding IsBackup, Converter={StaticResource BoolToVisible}}">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="76" />
+                                        <ColumnDefinition Width="120" />
                                         <ColumnDefinition Width="120" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
@@ -473,11 +472,10 @@
                                 <Grid Style="{StaticResource SettingRow}"
                                       Visibility="{Binding IsResizeClassic, Converter={StaticResource BoolToVisible}}">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="120" />
                                         <ColumnDefinition Width="120" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Padding="24,0,0,0"
-                                                         TextAlignment="Left" 
+                                    <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
                                                Text="{loc:Loc ResizeArgs}" />
                                     <TextBox Grid.Column="1"
                                              Style="{StaticResource SettingsTextBox}"
@@ -540,10 +538,10 @@
 
                                 <Grid Style="{StaticResource SettingRow}">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="120" />
                                         <ColumnDefinition Width="120" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Padding="24,0,0,0"
+                                    <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}"
                                                          TextAlignment="Left" 
                                                Text="{loc:Loc Filter}" />
                                     <ComboBox Grid.Column="1"

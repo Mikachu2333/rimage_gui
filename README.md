@@ -10,11 +10,13 @@ A Windows GUI for the [rimage](https://github.com/SalOne22/rimage) image compres
 
 ## Image compression effect
 
+You can click to view the original images, which are all provided as-is.
+
 ![compare](compare.png)
 
-|Before|After|
-|---|---|
-|![original](example_original.png)|![zipped](example_after.jpg)|
+| Before                            | After                        |
+| --------------------------------- | ---------------------------- |
+| ![original](example_original.png) | ![zipped](example_after.jpg) |
 
 As shown in the above images, even the default quality option of **85** only slightly reduces the clarity of the image. If you are looking for "almost invisible loss of clarity", try quality options above 90.
 
@@ -34,6 +36,21 @@ As shown in the above images, even the default quality option of **85** only sli
 - Live progress, per-file status and a log with the exact command line, success/failure diagnostics and a final succeeded/failed/skipped summary.
 - Cancellable runs; the backend is embedded per-architecture and verified by hash and `--version` before first use.
 - Follows the Windows light/dark theme; Chinese/English UI strings follow the system language.
+
+### Support list
+
+| Format   | Input | Output | Special Notes                               |
+| -------- | ----- | ------ | ------------------------------------------- |
+| avif     | ✓     | ✓      | Static Only                                 |
+| bmp      | ✓     | ✕      |                                             |
+| hdr      | ✓     | ✕      |                                             |
+| jpg/jpeg | ✓     | ✓      | Use Mozjpeg for more features               |
+| jxl      | ✓     | ✓      | Static Only, Lossless Only                  |
+| png      | ✓     | ✓      | Lossless Only, Use oxipng for more features |
+| psd      | ✓     | ✕      |                                             |
+| tif/tiff | ✓     | ✕      |                                             |
+| webp     | ✓     | ✓      | Static Only                                 |
+| svg      | ✓     | ✓      |                                             |
 
 ## Build
 

@@ -22,14 +22,14 @@ namespace RimageGui.Core
             new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 ".jpg", ".jpeg", ".png", ".webp", ".avif", ".bmp",
-                ".tif", ".tiff", ".psd", ".jxl", ".hdr"
+                ".tif", ".tiff", ".psd", ".jxl", ".hdr", ".svg"
             };
 
         /// <summary>Status updates are throttled to one per this many files.</summary>
         private const int ProgressReportStep = 256;
 
         public static string FileDialogFilter =>
-            "Images|*.jpg;*.jpeg;*.png;*.webp;*.avif;*.bmp;*.tif;*.tiff;*.psd;*.jxl;*.hdr|" +
+            "Images|*.jpg;*.jpeg;*.png;*.webp;*.avif;*.bmp;*.tif;*.tiff;*.psd;*.jxl;*.hdr;*.svg|" +
             "All files|*.*";
 
         public static bool IsSupported(string path)

@@ -65,5 +65,8 @@ namespace RimageGui.Models
 
         /// <summary>Runs rimage without a visible console window.</summary>
         public bool HideBackendWindow { get; set; } = true;
+
+        /// <summary>Strips EXIF/metadata when the target codec supports it.</summary>
+        public bool StripMetadata { get; set; }
     }
 }

@@ -168,6 +168,16 @@ namespace RimageGui.Tests
         }
 
         [TestMethod]
+        public void StripMetadata_EmitsFlagOnlyWhenChecked()
+        {
+            Assert.IsFalse(Contains(Build(Base()), "--strip"));
+
+            var options = Base();
+            options.StripMetadata = true;
+            Assert.IsTrue(Contains(Build(options), "--strip"));
+        }
+
+        [TestMethod]
         public void BackupPolicy_EmitsBackupFlag()
         {
             var options = Base();

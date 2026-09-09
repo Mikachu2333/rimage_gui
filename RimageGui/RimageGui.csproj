@@ -25,7 +25,7 @@
     <OutputPath Condition="'$(Configuration)' == 'Release'">bin\Release\</OutputPath>
     <OutputPath Condition="'$(Configuration)' != 'Release'">bin\Debug\</OutputPath>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <Version>3.0.5</Version>
+    <Version>3.0.6</Version>
     <Product>Rimage GUI</Product>
     <Company>Mikachu2333</Company>
     <Copyright>MIT</Copyright>
@@ -67,4 +67,13 @@
          following live theme switches needs no extra reference. -->
     <Reference Include="System.Runtime.Serialization" />
   </ItemGroup>
+
+  <!-- Keep the Win32 manifest version in sync with the single AssemblyVersion
+       source in RimageGui.csproj. -->
+  <Target Name="SyncAppManifestVersion" BeforeTargets="PrepareForBuild" Condition="Exists('app.manifest')">
+    <PropertyGroup>
+      <_AppManifestVersion>$(Version).0</_AppManifestVersion>
+    </PropertyGroup>
+    <XmlPoke XmlInputPath="app.manifest" Query="/assembly/assemblyIdentity/@version" Value="$(_AppManifestVersion)" />
+  </Target>
 </Project>

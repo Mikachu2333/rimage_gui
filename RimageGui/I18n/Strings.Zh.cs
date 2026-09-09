@@ -71,6 +71,8 @@ namespace RimageGui.I18n
             ["Suffix"] = "输出后缀",
             ["SuffixTip"] = "追加到输出文件名后的后缀，无分隔符，例如 a.jpg → a_new.jpg。\n与「创建 @backup 备份」互斥：选择备份会自动关闭后缀。\n默认：_new",
             ["SuffixBackupHint"] = "备份策略已接管命名，勾选后缀会自动切换回「保留」。",
+            ["StripMetadata"] = "剥离元数据（EXIF）",
+            ["StripMetadataTip"] = "勾选后向 rimage 传入 --strip，在支持的编码格式中移除 EXIF 等元数据。\n默认不剥离，保留原图元数据。",
             // ---- per-format notes (from the rimage codec table) ----
             ["FormatHintMozJpeg"] = "MozJPEG：推荐的有损 JPEG 编码器，速度与压缩率的均衡选择，质量 60–80 效果最佳。",
             ["FormatHintJpeg"] = "JPEG：标准 JPEG 编码器，质量 1–100，兼容性最好。",

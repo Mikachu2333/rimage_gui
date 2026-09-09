@@ -474,6 +474,12 @@ namespace RimageGui.ViewModels
             set => _options.HideBackendWindow = value;
         }
 
+        public bool StripMetadata
+        {
+            get => _options.StripMetadata;
+            set => _options.StripMetadata = value;
+        }
+
         public bool AutoThreads
         {
             get => _options.AutoThreads;

@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -52,7 +53,11 @@ namespace RimageGui
             WireViewModelHooks();
 
             Loaded += OnLoaded;
-            SourceInitialized += (_, __) => _themeService.ApplyTitleBar(this);
+            SourceInitialized += (_, __) =>
+            {
+                _themeService.ApplyTitleBar(this);
+                EnableElevatedDragDrop();
+            };
         }
 
         private void WireViewModelHooks()
@@ -64,6 +69,54 @@ namespace RimageGui
             _viewModel.Confirm = ConfirmDialog;
             _viewModel.LogAppended += AppendLog;
             _viewModel.JobCompleted += OnJobCompleted;
+        }
+
+        private const uint WmDropFiles = 0x0233;
+        private const uint WmCopyData = 0x004A;
+        private const int MsgfltAdd = 1;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct ChangeFilterStruct
+        {
+            public uint Size;
+            public uint Info;
+        }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool ChangeWindowMessageFilterEx(
+            IntPtr hwnd,
+            uint message,
+            int action,
+            ref ChangeFilterStruct changeFilterStruct);
+
+        /// <summary>
+        /// Allows file drag-and-drop from an unelevated Explorer into an elevated
+        /// window. UIPI otherwise blocks the OLE drop messages used by WPF's
+        /// DragDrop when the app runs as administrator.
+        /// </summary>
+        private void EnableElevatedDragDrop()
+        {
+            try
+            {
+                var handle = new WindowInteropHelper(this).Handle;
+                if (handle == IntPtr.Zero)
+                {
+                    return;
+                }
+
+                var filter = new ChangeFilterStruct
+                {
+                    Size = (uint)Marshal.SizeOf<ChangeFilterStruct>(),
+                    Info = 0
+                };
+
+                ChangeWindowMessageFilterEx(handle, WmDropFiles, MsgfltAdd, ref filter);
+                ChangeWindowMessageFilterEx(handle, WmCopyData, MsgfltAdd, ref filter);
+            }
+            catch (Exception)
+            {
+                // Older Windows or unsupported UIPI; the existing asInvoker path still works.
+            }
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)

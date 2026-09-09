@@ -293,6 +293,14 @@ namespace RimageGui.ViewModels
             set => Set(ref _hiddenExecute, value);
         }
 
+        private bool _stripMetadata;
+        
+        public bool StripMetadata
+        {
+            get => _stripMetadata;
+            set => Set(ref _stripMetadata, value);
+        }
+
         private bool _autoThreads = true;
 
         public bool AutoThreads
@@ -338,7 +346,8 @@ namespace RimageGui.ViewModels
             BoundEdge = BoundEdge,
             BoundValue = BoundValue,
             Threads = AutoThreads ? (int?)null : Threads,
-            HideBackendWindow = HideBackendWindow
+            HideBackendWindow = HideBackendWindow,
+            StripMetadata = StripMetadata
         };
 
         public event PropertyChangedEventHandler PropertyChanged;

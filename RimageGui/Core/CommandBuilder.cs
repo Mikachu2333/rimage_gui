@@ -65,6 +65,11 @@ namespace RimageGui.Core
                 args.Add("--backup");
             }
 
+            if (options.StripMetadata)
+            {
+                args.Add("--strip");
+            }
+
             if (options.Quantization.HasValue)
             {
                 args.Add("--quantization");

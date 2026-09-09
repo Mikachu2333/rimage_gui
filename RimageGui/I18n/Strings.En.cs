@@ -71,6 +71,8 @@ namespace RimageGui.I18n
             ["Suffix"] = "Output suffix",
             ["SuffixTip"] = "Suffix appended to the output name with no separator, e.g. a.jpg → a_new.jpg.\nMutually exclusive with the @backup policy: choosing Backup turns it off.\nDefault: _new",
             ["SuffixBackupHint"] = "The Backup policy owns naming; checking the suffix switches the policy back to Keep.",
+            ["StripMetadata"] = "Strip metadata (EXIF)",
+            ["StripMetadataTip"] = "When checked, passes --strip to rimage to remove EXIF and other metadata for supported output formats.\nUnchecked by default to preserve original metadata.",
             // ---- per-format notes (from the rimage codec table) ----
             ["FormatHintMozJpeg"] = "MozJPEG: the recommended lossy JPEG encoder; balanced speed and compression, best around quality 60–80.",
             ["FormatHintJpeg"] = "JPEG: the standard JPEG encoder, quality 1–100, maximum compatibility.",

@@ -49,10 +49,21 @@ namespace RimageGui.Tests
 
             Assert.AreEqual("mozjpeg", args[0]);
             CollectionAssert.AreEqual(
-                new[] { "--threads", "4", "--no-progress", "--metadata", "metadata.json", "file.list" },
-                args.Skip(args.Count - 6).ToList());
+                new[] { "--threads", "4", "--quiet", "--no-progress", "--metadata", "metadata.json", "file.list" },
+                args.Skip(args.Count - 7).ToList());
             Assert.IsTrue(Contains(args, "--quality"));
             Assert.AreEqual("85", args[args.IndexOf("--quality") + 1]);
+        }
+
+        [TestMethod]
+        public void EveryInvocation_IsQuiet_AndProgressFree()
+        {
+            // --quiet silences the result table on stdout but not the stderr
+            // lines the GUI parses for per-file failures, so both flags belong
+            // on every invocation regardless of the other options.
+            var args = Build(Base());
+            Assert.IsTrue(Contains(args, "--quiet"));
+            Assert.IsTrue(Contains(args, "--no-progress"));
         }
 
         [TestMethod]

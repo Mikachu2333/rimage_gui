@@ -107,6 +107,19 @@ namespace RimageGui.Core
 
         public bool Cancelled { get; set; }
 
+        /// <summary>
+        /// True when the run stopped early because a backend failure invalidated
+        /// the remaining chunks rather than just their own files.
+        /// </summary>
+        public bool Aborted { get; set; }
+
+        /// <summary>
+        /// Why the run was aborted, when <see cref="Aborted"/> is true. This is
+        /// an argument-level or crash-level problem, so it is worth showing as a
+        /// dialog instead of only a log line.
+        /// </summary>
+        public string FatalError { get; set; }
+
         /// <summary>Every failed input with its reason, for the end-of-run log.</summary>
         public List<FailedFile> FailedItems { get; } = new List<FailedFile>();
     }

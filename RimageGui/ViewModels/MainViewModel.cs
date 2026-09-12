@@ -737,10 +737,26 @@ namespace RimageGui.ViewModels
 
                 LogRunSummary(summary);
 
+                if (!string.IsNullOrEmpty(summary.FatalError))
+                {
+                    ShowError?.Invoke(Loc.I["MsgTitleError"], summary.FatalError);
+                }
+
                 ProgressText = $"{(summary.Cancelled ? Loc.I["Cancelled"] : Loc.I["Finished"])} {ProgressPercent()}%";
 
-                // The run is over; the next one starts from a clean list.
-                Files.Clear();
+                // A clean run has nothing left to act on, so it clears. Anything
+                // else drops only the rows that were actually written: they are
+                // on disk already, and re-running them would overwrite the
+                // output. What is left stays checked, so "start" becomes a
+                // retry of exactly the files that still need work.
+                if (summary.Failed == 0 && !summary.Cancelled && !summary.Aborted)
+                {
+                    Files.Clear();
+                }
+                else
+                {
+                    DropFinished(selected);
+                }
             }
             catch (Exception exception)
             {
@@ -768,6 +784,38 @@ namespace RimageGui.ViewModels
             {
                 var detail = !string.IsNullOrEmpty(failure.Error) ? $" - {failure.Error}" : string.Empty;
                 Log($"{Loc.I["SummaryFailed"]}: {failure.Input}{detail}");
+            }
+        }
+
+        /// <summary>
+        /// Removes the rows that finished and leaves the rest in place, so
+        /// pressing start again retries the failures instead of the whole batch.
+        /// </summary>
+        /// <remarks>
+        /// rimage's partial-success exit code exists precisely because a blind
+        /// re-run overwrites outputs that were already written; taking the
+        /// successes out of the list is what keeps the GUI from turning a retry
+        /// into that. Only rows that took part in the run are touched, so a row
+        /// the user unchecked on purpose survives, still unchecked.
+        /// </remarks>
+        private void DropFinished(IReadOnlyList<FileEntry> participants)
+        {
+            var finished = participants.Where(e => e.Status == FileStatus.Done).ToList();
+            var pending = participants.Where(e => e.Status != FileStatus.Done).ToList();
+
+            RemoveEntries(finished);
+
+            // The survivors are the retry set, so they stay selected. Setting
+            // the flag per entry (rather than rebuilding the collection) keeps
+            // the scroll position and the row order the user is looking at.
+            foreach (var entry in pending)
+            {
+                entry.IsChecked = true;
+            }
+
+            if (pending.Count > 0)
+            {
+                Log(Loc.I["SummaryRetryHint"]);
             }
         }
 

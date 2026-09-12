@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using RimageGui.I18n;
 using RimageGui.Models;
 
 namespace RimageGui.Core
@@ -25,17 +26,22 @@ namespace RimageGui.Core
     /// <para>
     /// Within a chunk, rimage itself parallelises across <c>--threads</c>.
     /// </para>
+    /// <para>
+    /// Every chunk is judged on three things, in order of authority: the
+    /// <c>--metadata</c> JSON, which lists the outputs that really exist; the
+    /// per-file error lines on stderr, which name the file and carry a stable
+    /// slug; and finally the process exit code. Reading all three is what lets a
+    /// partially successful chunk report successes and failures separately
+    /// instead of collapsing into one verdict.
+    /// </para>
     /// </remarks>
     public static class JobRunner
     {
         /// <summary>Upper bound on how many progress updates a run produces.</summary>
         private const int ProgressSteps = 50;
 
-        /// <summary>Trailing stdout/stderr kept per chunk for failure diagnostics.</summary>
-        private const int MaxDiagnosticChars = 8 * 1024;
-
-        /// <summary>How many chars of chunk diagnostics are copied into a file error.</summary>
-        private const int MaxResizeDiagnosticChars = 600;
+        /// <summary>Output lines kept per chunk for error attribution.</summary>
+        private const int MaxDiagnosticLines = 4096;
 
         /// <summary>Poll interval while waiting for a rimage process to exit.</summary>
         private const int ProcessPollIntervalMilliseconds = 100;
@@ -89,10 +95,40 @@ namespace RimageGui.Core
 
                     var context = new ChunkContext(
                         chunk, options, backendPath, scratch, workingRoot,
-                        progress, !loggedCommand, done, total, token);
+                        progress, !loggedCommand, token);
                     var outcome = await RunChunkAsync(context).ConfigureAwait(false);
 
                     loggedCommand = true;
+
+                    // A fatal code is a property of the arguments, not of the
+                    // data: every later chunk would fail identically, so the run
+                    // stops instead of respawning the same broken command.
+                    if (!token.IsCancellationRequested && !string.IsNullOrEmpty(outcome.FatalError))
+                    {
+                        foreach (var input in chunk)
+                        {
+                            summary.Failed++;
+                            summary.FailedItems.Add(new FailedFile
+                            {
+                                Input = input,
+                                Error = outcome.FatalError
+                            });
+                            progress?.Report(new FileFinishedJobReport(
+                                input, FileStatus.Failed, null, outcome.FatalError));
+                        }
+
+                        summary.Aborted = true;
+                        summary.FatalError = outcome.FatalError;
+                        progress?.Report(new LogJobReport(outcome.FatalError));
+                        done += chunk.Count;
+                        progress?.Report(new ProgressJobReport(done, total));
+                        break;
+                    }
+
+                    if (outcome.MetadataMissing)
+                    {
+                        progress?.Report(new LogJobReport(Loc.I["ErrMetadataMissing"]));
+                    }
 
                     foreach (var input in chunk)
                     {
@@ -105,7 +141,12 @@ namespace RimageGui.Core
 
                 if (token.IsCancellationRequested)
                 {
-                    ReportCancelledTail(files, total, summary, progress);
+                    summary.Cancelled = true;
+                    ReportTail(files, total, summary, progress);
+                }
+                else if (summary.Aborted)
+                {
+                    ReportTail(files, total, summary, progress);
                 }
             }
             finally
@@ -171,13 +212,12 @@ namespace RimageGui.Core
             }
         }
 
-        private static void ReportCancelledTail(
+        private static void ReportTail(
             IReadOnlyList<string> files,
             int total,
             JobSummary summary,
             IProgress<JobReport> progress)
         {
-            summary.Cancelled = true;
             summary.Skipped = total - summary.Succeeded - summary.Failed;
 
             for (var index = total - summary.Skipped; index < total; index++)
@@ -188,19 +228,26 @@ namespace RimageGui.Core
 
         private sealed class ChunkOutcome
         {
-            public bool ProcessSucceeded { get; set; }
+            public RimageExitCode Kind { get; set; } = RimageExitCode.Success;
 
-            public Dictionary<string, string> Outputs { get; set; }
-
-            /// <summary>
-            /// Actual output paths parsed from rimage's per-file summary lines,
-            /// keyed by <see cref="PathUtil.Key"/>. Used when rimage writes no
-            /// metadata because one file in the chunk failed.
-            /// </summary>
-            public Dictionary<string, string> ReportedOutputs { get; } =
+            public Dictionary<string, string> Outputs { get; set; } =
                 new Dictionary<string, string>(StringComparer.Ordinal);
 
-            public string Diagnostic { get; set; }
+            /// <summary>Failures rimage named, keyed by <see cref="PathUtil.Key"/> of the input.</summary>
+            public Dictionary<string, BackendError> ErrorsByInput { get; } =
+                new Dictionary<string, BackendError>(StringComparer.Ordinal);
+
+            /// <summary>Failures whose file could not be identified.</summary>
+            public List<BackendError> Unattributed { get; } = new List<BackendError>();
+
+            /// <summary>
+            /// Set when the failure invalidates the whole run rather than these
+            /// files; non-null means "stop, do not send another chunk".
+            /// </summary>
+            public string FatalError { get; set; }
+
+            /// <summary>True when rimage should have written metadata but did not.</summary>
+            public bool MetadataMissing { get; set; }
 
             public string CommandLine { get; set; }
         }
@@ -224,8 +271,6 @@ namespace RimageGui.Core
                 string workingRoot,
                 IProgress<JobReport> progress,
                 bool logCommand,
-                int baseDone,
-                int total,
                 CancellationToken token)
             {
                 Chunk = chunk;
@@ -235,8 +280,6 @@ namespace RimageGui.Core
                 WorkingRoot = workingRoot;
                 Progress = progress;
                 LogCommand = logCommand;
-                BaseDone = baseDone;
-                Total = total;
                 Token = token;
             }
 
@@ -253,10 +296,6 @@ namespace RimageGui.Core
             public IProgress<JobReport> Progress { get; }
 
             public bool LogCommand { get; }
-
-            public int BaseDone { get; }
-
-            public int Total { get; }
 
             public CancellationToken Token { get; }
         }
@@ -284,101 +323,114 @@ namespace RimageGui.Core
                 context.Progress?.Report(new LogJobReport(outcome.CommandLine));
             }
 
-            // Redirecting is what feeds the in-app log, but it also swallows the
-            // console the user asked to see when "hide rimage window" is off.
-            var redirect = context.Options.HideBackendWindow;
-
+            // Always redirected: --quiet leaves stdout empty, so the only thing
+            // worth seeing is stderr, and capturing it is what gives each failed
+            // row a real reason instead of a generic one.
             var startInfo = new ProcessStartInfo(context.BackendPath, PathUtil.BuildArgumentString(args))
             {
                 UseShellExecute = false,
                 CreateNoWindow = context.Options.HideBackendWindow,
                 WorkingDirectory = context.WorkingRoot ?? chunkDirectory,
-                RedirectStandardOutput = redirect,
-                RedirectStandardError = redirect
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding = Encoding.UTF8
             };
 
-            if (redirect)
+            if (!context.Options.HideBackendWindow)
             {
-                startInfo.StandardOutputEncoding = Encoding.UTF8;
-                startInfo.StandardErrorEncoding = Encoding.UTF8;
+                // The console the user asked for stays empty under --quiet, so
+                // its real value is the verbose log; this is the knob rimage
+                // itself suggests when a run needs to be reproduced.
+                startInfo.EnvironmentVariables["RUST_LOG"] = "debug";
             }
 
-            var diagnostic = new StringBuilder();
-            var completedInChunk = 0;
+            var lines = new List<string>();
+            var exitCode = -1;
 
             try
             {
                 using (var process = new Process { StartInfo = startInfo, EnableRaisingEvents = false })
                 {
-                    if (redirect)
+                    DataReceivedEventHandler onData = (_, e) =>
                     {
-                        DataReceivedEventHandler onData = (_, e) =>
+                        if (e.Data == null)
                         {
-                            if (e.Data == null)
+                            return;
+                        }
+
+                        lock (lines)
+                        {
+                            if (lines.Count < MaxDiagnosticLines)
                             {
-                                return;
+                                lines.Add(e.Data);
                             }
+                        }
 
-                            var isFileResult = LooksLikeFileResult(e.Data);
-                            var completedNow = 0;
-                            lock (diagnostic)
-                            {
-                                if (diagnostic.Length < MaxDiagnosticChars)
-                                {
-                                    diagnostic.AppendLine(e.Data);
-                                }
+                        context.Progress?.Report(new LogJobReport(e.Data));
+                    };
 
-                                if (isFileResult)
-                                {
-                                    completedInChunk++;
-                                    completedNow = completedInChunk;
-                                    var reported = ExtractOutputPath(e.Data);
-                                    if (reported != null)
-                                    {
-                                        outcome.ReportedOutputs[PathUtil.Key(reported)] = reported;
-                                    }
-                                }
-                            }
-
-                            context.Progress?.Report(new LogJobReport(e.Data));
-                            if (completedNow > 0)
-                            {
-                                context.Progress?.Report(new ProgressJobReport(
-                                    context.BaseDone + completedNow, context.Total));
-                            }
-                        };
-
-                        process.OutputDataReceived += onData;
-                        process.ErrorDataReceived += onData;
-                    }
+                    process.OutputDataReceived += onData;
+                    process.ErrorDataReceived += onData;
 
                     process.Start();
-
-                    if (redirect)
-                    {
-                        process.BeginOutputReadLine();
-                        process.BeginErrorReadLine();
-                    }
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
 
                     await WaitAsync(process, context.Token).ConfigureAwait(false);
 
-                    outcome.ProcessSucceeded = !context.Token.IsCancellationRequested && process.ExitCode == 0;
+                    // A killed process may still be winding down, and reading
+                    // ExitCode before it has would throw.
+                    exitCode = process.HasExited ? process.ExitCode : -1;
                 }
             }
             catch (Exception exception)
             {
-                outcome.ProcessSucceeded = false;
-                diagnostic.AppendLine(exception.ToString());
+                outcome.Kind = RimageExitCode.Unexpected;
+                outcome.FatalError = exception.Message;
+                lock (lines)
+                {
+                    lines.Add(exception.ToString());
+                }
+
+                context.Progress?.Report(new LogJobReport(exception.Message));
             }
 
-            lock (diagnostic)
+            string[] captured;
+            lock (lines)
             {
-                outcome.Diagnostic = diagnostic.ToString().Trim();
+                captured = lines.ToArray();
             }
 
-            if (outcome.ProcessSucceeded)
+            if (outcome.FatalError == null)
             {
-                outcome.Outputs = MetadataReader.LoadOutputMap(metadataPath);
+                outcome.Kind = RimageExitCodes.Classify(exitCode);
+
+                foreach (var error in RimageErrors.Parse(captured, context.Chunk))
+                {
+                    if (string.IsNullOrEmpty(error.Path))
+                    {
+                        outcome.Unattributed.Add(error);
+                    }
+                    else
+                    {
+                        outcome.ErrorsByInput[PathUtil.Key(error.Path)] = error;
+                    }
+                }
+
+                if (RimageExitCodes.IsFatal(outcome.Kind))
+                {
+                    outcome.FatalError = RimageErrors.DescribeFatal(outcome.Kind);
+                }
+
+                if (RimageExitCodes.CarriesMetadata(outcome.Kind))
+                {
+                    outcome.Outputs = MetadataReader.LoadOutputMap(metadataPath);
+                    // Images can all succeed while the summary file itself fails
+                    // to write; that still reports Partial, so an absent JSON is
+                    // a normal outcome and not a reason to fail the files.
+                    outcome.MetadataMissing = outcome.Outputs.Count == 0;
+                }
             }
 
             TryDeleteDirectory(chunkDirectory);
@@ -412,100 +464,58 @@ namespace RimageGui.Core
                 return;
             }
 
-            // Lets the redirected readers drain before the handles close.
+            // The polling overload returns as soon as the process dies, which is
+            // before the asynchronous readers have drained. The parameterless
+            // overload waits for stdout/stderr to reach EOF, and without it the
+            // final error lines — the ones that explain the last failure in a
+            // chunk — can be lost.
+            process.WaitForExit();
             await Task.Yield();
         }
 
-        private static bool LooksLikeFileResult(string line)
-        {
-            if (string.IsNullOrWhiteSpace(line))
-            {
-                return false;
-            }
-
-            if (line.StartsWith("File", StringComparison.Ordinal) ||
-                line.StartsWith("Total:", StringComparison.Ordinal))
-            {
-                return false;
-            }
-
-            return line.IndexOf(" kB > ", StringComparison.Ordinal) > 0;
-        }
-
-        private static string ExtractOutputPath(string line)
-        {
-            var marker = line.IndexOf(" kB > ", StringComparison.Ordinal);
-            if (marker <= 0)
-            {
-                return null;
-            }
-
-            var path = line.Substring(0, marker).Trim();
-            if (path.StartsWith(@"\\?\", StringComparison.Ordinal))
-            {
-                path = path.Substring(4);
-            }
-
-            return path;
-        }
-
-        private static string FindReportedOutput(
-            string input,
-            ProcessingOptions options,
-            ChunkOutcome outcome)
-        {
-            var predicted = Validator.PredictedOutputPath(input, options);
-            if (outcome.ReportedOutputs.TryGetValue(PathUtil.Key(predicted), out var exact))
-            {
-                return exact;
-            }
-
-            var predictedName = Path.GetFileName(predicted);
-            foreach (var pair in outcome.ReportedOutputs)
-            {
-                if (string.Equals(Path.GetFileName(pair.Value), predictedName, StringComparison.OrdinalIgnoreCase))
-                {
-                    return pair.Value;
-                }
-            }
-
-            return null;
-        }
-
+        /// <summary>
+        /// Decides one input's outcome from the three signals the chunk produced.
+        /// </summary>
         private static FileResult Resolve(string input, ProcessingOptions options, ChunkOutcome outcome)
         {
-            if (outcome.ProcessSucceeded &&
-                outcome.Outputs.TryGetValue(PathUtil.Key(input), out var reported) &&
+            if (outcome.Outputs.TryGetValue(PathUtil.Key(input), out var reported) &&
                 IsUsableOutput(reported))
             {
                 return new FileResult { Status = FileStatus.Done, Output = reported };
             }
 
-            // rimage writes no metadata for a failed batch, so fall back to the
-            // per-file summary lines it still emits. Those give the real output
-            // path; the predicted path remains a final existence check.
-            var reportedOutput = FindReportedOutput(input, options, outcome);
-            if (reportedOutput != null && IsUsableOutput(reportedOutput))
+            if (outcome.ErrorsByInput.TryGetValue(PathUtil.Key(input), out var failure))
             {
-                return new FileResult { Status = FileStatus.Done, Output = reportedOutput };
+                return new FileResult
+                {
+                    Status = FileStatus.Failed,
+                    Error = RimageErrors.Describe(failure)
+                };
             }
 
+            // No metadata entry and no error line: either rimage wrote the file
+            // and failed to record it, or the predicted path is the only evidence
+            // left. Existence is checked rather than assumed.
             var predicted = Validator.PredictedOutputPath(input, options);
             if (IsUsableOutput(predicted))
             {
                 return new FileResult { Status = FileStatus.Done, Output = predicted };
             }
 
-            var error = outcome.ProcessSucceeded
-                ? "rimage reported success but produced no usable output for this file"
-                : "rimage exited with a failure";
-
-            if (!string.IsNullOrEmpty(outcome.Diagnostic))
+            return new FileResult
             {
-                error += $"; {Truncate(outcome.Diagnostic, MaxResizeDiagnosticChars)}";
-            }
+                Status = FileStatus.Failed,
+                Error = FallbackError(outcome)
+            };
+        }
 
-            return new FileResult { Status = FileStatus.Failed, Error = error };
+        private static string FallbackError(ChunkOutcome outcome)
+        {
+            // A failure rimage printed without a path we recognised is still the
+            // best explanation available; otherwise the exit code is all there is.
+            return outcome.Unattributed.Count > 0
+                ? RimageErrors.Describe(outcome.Unattributed[0])
+                : RimageErrors.DescribeExit(outcome.Kind);
         }
 
         private static FileResult ApplyDeletePolicy(string input, FileResult result, bool cancelled)
@@ -606,9 +616,6 @@ namespace RimageGui.Core
 
             return Directory.Exists(root) ? root : null;
         }
-
-        private static string Truncate(string value, int max) =>
-            value.Length <= max ? value : $"{value.Substring(0, max)}…";
 
         private static void TryDeleteDirectory(string path)
         {

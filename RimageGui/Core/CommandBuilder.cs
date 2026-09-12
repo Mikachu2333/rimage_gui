@@ -87,6 +87,12 @@ namespace RimageGui.Core
 
             args.Add("--threads");
             args.Add(ResolveThreads(options).ToString(invariant));
+
+            // --quiet drops the human-readable result table; --no-progress drops
+            // the progress bar. Neither silences the stderr lines that carry the
+            // per-file error slugs, which is what the GUI actually reads, so the
+            // run stays fully diagnosable while printing nothing to stdout.
+            args.Add("--quiet");
             args.Add("--no-progress");
             args.Add("--metadata");
             args.Add(metadata);

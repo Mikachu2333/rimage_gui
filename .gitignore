@@ -16,3 +16,4 @@ dist/
 
 # Published single-file layouts
 publish/
+/.workbuddy/memory

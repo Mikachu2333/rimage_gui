@@ -68,5 +68,8 @@ namespace RimageGui.Models
 
         /// <summary>Strips EXIF/metadata when the target codec supports it.</summary>
         public bool StripMetadata { get; set; }
+
+        /// <summary>Maps to rimage's <c>-p</c>: the output keeps the input's last write time.</summary>
+        public bool PreserveTimestamps { get; set; }
     }
 }

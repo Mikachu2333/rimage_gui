@@ -70,6 +70,11 @@ namespace RimageGui.Core
                 args.Add("--strip");
             }
 
+            if (options.PreserveTimestamps)
+            {
+                args.Add("-p");
+            }
+
             if (options.Quantization.HasValue)
             {
                 args.Add("--quantization");

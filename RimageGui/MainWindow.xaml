@@ -338,6 +338,12 @@
                                               IsChecked="{Binding StripMetadata}" />
                                 </Grid>
 
+                                <Grid Style="{StaticResource SettingRow}">
+                                    <CheckBox Content="{loc:Loc PreserveTimestamps}"
+                                              ToolTip="{loc:Loc PreserveTimestampsTip}"
+                                              IsChecked="{Binding PreserveTimestamps}" />
+                                </Grid>
+
                                 <TextBlock Style="{StaticResource SecondaryText}"
                                            TextWrapping="Wrap"
                                            Margin="0,0,0,8"

@@ -480,6 +480,12 @@ namespace RimageGui.ViewModels
             set => _options.StripMetadata = value;
         }
 
+        public bool PreserveTimestamps
+        {
+            get => _options.PreserveTimestamps;
+            set => _options.PreserveTimestamps = value;
+        }
+
         public bool AutoThreads
         {
             get => _options.AutoThreads;

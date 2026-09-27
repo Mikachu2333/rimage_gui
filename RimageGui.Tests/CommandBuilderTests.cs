@@ -189,6 +189,20 @@ namespace RimageGui.Tests
         }
 
         [TestMethod]
+        public void PreserveTimestamps_EmitsFlagOnlyWhenChecked()
+        {
+            Assert.IsFalse(Contains(Build(Base()), "-p"));
+
+            var options = Base();
+            options.PreserveTimestamps = true;
+            var args = Build(options);
+            Assert.IsTrue(Contains(args, "-p"));
+
+            // -p is a bare switch, so it must not swallow the argument after it.
+            Assert.AreEqual("--threads", args[args.IndexOf("-p") + 1]);
+        }
+
+        [TestMethod]
         public void BackupPolicy_EmitsBackupFlag()
         {
             var options = Base();

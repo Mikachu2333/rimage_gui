@@ -74,6 +74,8 @@ namespace RimageGui.I18n
             ["SuffixBackupHint"] = "备份策略已接管命名，勾选后缀会自动切换回「保留」。",
             ["StripMetadata"] = "剥离元数据（EXIF）",
             ["StripMetadataTip"] = "勾选后向 rimage 传入 --strip，在支持的编码格式中移除 EXIF 等元数据。\n默认不剥离，保留原图元数据。",
+            ["PreserveTimestamps"] = "保留修改时间",
+            ["PreserveTimestampsTip"] = "勾选后向 rimage 传入 -p，让输出文件继承输入文件的最后修改时间，而不是自身的写出时间。\n仅复制修改时间：访问时间交由系统决定，创建时间保持不变。\n默认不勾选，输出文件带写出时间。",
             // ---- per-format notes (from the rimage codec table) ----
             ["FormatHintMozJpeg"] = "MozJPEG：推荐的有损 JPEG 编码器，速度与压缩率的均衡选择，质量 60–80 效果最佳。",
             ["FormatHintJpeg"] = "JPEG：标准 JPEG 编码器，质量 1–100，兼容性最好。",

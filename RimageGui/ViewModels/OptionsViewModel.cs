@@ -301,6 +301,14 @@ namespace RimageGui.ViewModels
             set => Set(ref _stripMetadata, value);
         }
 
+        private bool _preserveTimestamps;
+
+        public bool PreserveTimestamps
+        {
+            get => _preserveTimestamps;
+            set => Set(ref _preserveTimestamps, value);
+        }
+
         private bool _autoThreads = true;
 
         public bool AutoThreads
@@ -347,7 +355,8 @@ namespace RimageGui.ViewModels
             BoundValue = BoundValue,
             Threads = AutoThreads ? (int?)null : Threads,
             HideBackendWindow = HideBackendWindow,
-            StripMetadata = StripMetadata
+            StripMetadata = StripMetadata,
+            PreserveTimestamps = PreserveTimestamps
         };
 
         public event PropertyChangedEventHandler PropertyChanged;

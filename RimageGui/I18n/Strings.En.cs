@@ -74,6 +74,8 @@ namespace RimageGui.I18n
             ["SuffixBackupHint"] = "The Backup policy owns naming; checking the suffix switches the policy back to Keep.",
             ["StripMetadata"] = "Strip metadata (EXIF)",
             ["StripMetadataTip"] = "When checked, passes --strip to rimage to remove EXIF and other metadata for supported output formats.\nUnchecked by default to preserve original metadata.",
+            ["PreserveTimestamps"] = "Preserve modification time",
+            ["PreserveTimestampsTip"] = "When checked, passes -p to rimage so each output is stamped with its input's last modification time instead of the time it was written.\nOnly the modification time is copied: access times are left to the system and creation times are untouched.\nUnchecked by default, so an output carries its write time.",
             // ---- per-format notes (from the rimage codec table) ----
             ["FormatHintMozJpeg"] = "MozJPEG: the recommended lossy JPEG encoder; balanced speed and compression, best around quality 60–80.",
             ["FormatHintJpeg"] = "JPEG: the standard JPEG encoder, quality 1–100, maximum compatibility.",

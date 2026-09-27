@@ -38,7 +38,7 @@ namespace RimageGui.Core
         /// together with the embedded binary; it decides whether the on-disk
         /// copy is current.
         /// </summary>
-        public const string ExpectedVersion = "rimage 0.13.0-16";
+        public const string ExpectedVersion = "rimage 0.13.0-20";
 
         private const string ResourceName = "RimageGui.rimage.exe";
 

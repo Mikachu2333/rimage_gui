@@ -10,6 +10,7 @@ namespace RimageGui.I18n
         {
             // ---- shell ----
             ["AppTitle"] = "Rimage GUI",
+            ["StartingUp"] = "Starting…",
             ["Options"] = "Conversion options",
             // ---- file toolbar ----
             ["AddFiles"] = "Add files",

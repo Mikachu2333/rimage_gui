@@ -25,7 +25,7 @@
     <OutputPath Condition="'$(Configuration)' == 'Release'">bin\Release\</OutputPath>
     <OutputPath Condition="'$(Configuration)' != 'Release'">bin\Debug\</OutputPath>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <Version>3.0.9</Version>
+    <Version>3.1.0</Version>
     <Product>Rimage GUI</Product>
     <Company>Mikachu2333</Company>
     <Copyright>MIT</Copyright>
@@ -49,7 +49,18 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <RepositoryType>git</RepositoryType>
     <NeutralLanguage>en</NeutralLanguage>
+    <!-- Program.cs owns the entry point, so the splash window can be on screen
+         before any WPF type is touched. The WPF targets would otherwise emit a
+         Main that constructs the Application first, which is the expensive part.
+         App.xaml is still compiled as the application definition (see the item
+         below), which is what gives the app its merged resources. -->
+    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+    <StartupObject>RimageGui.Program</StartupObject>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ApplicationDefinition Include="App.xaml" SubType="Designer" Generator="MSBuild:Compile" />
+  </ItemGroup>
 
   <ItemGroup Condition="'$(EmbedBackend)' == 'true' And '$(Platform)' == 'x64'">
     <EmbeddedResource Include="..\res\rimage_x64.exe" LogicalName="RimageGui.rimage.exe" />

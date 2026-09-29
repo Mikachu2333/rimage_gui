@@ -34,6 +34,11 @@ namespace RimageGui
             var window = new MainWindow(_themeService);
             MainWindow = window;
             window.Show();
+
+            // Only now is there something to look at, so the splash has done its
+            // job. Closing it before Show would leave the user staring at nothing
+            // through the first layout and render pass.
+            SplashWindow.Close();
         }
 
         private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
